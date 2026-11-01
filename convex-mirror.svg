@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500" width="100%" height="100%">
+  <!-- White Background -->
+  <rect width="600" height="500" fill="#ffffff" />
+
+  <defs>
+    <!-- Hatch pattern for silvered (non-reflecting) concave backing -->
+    <pattern id="silvering-hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#000000" stroke-width="1.2" />
+    </pattern>
+    <!-- Arrowhead marker definition -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000" />
+    </marker>
+  </defs>
+
+  <!-- Title / Description -->
+  <text x="300" y="45" font-family="'Segoe UI', Roboto, Helvetica, sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#000000">
+    CONVEX MIRROR
+  </text>
+  <text x="300" y="70" font-family="'Segoe UI', Roboto, Helvetica, sans-serif" font-size="12" text-anchor="middle" fill="#444444">
+    Reflecting surface bulges outwards (Left) • Silvered backing (Right)
+  </text>
+
+  <!-- Principal Axis (Reference horizontal dashed line) -->
+  <line id="principal-axis" x1="50" y1="250" x2="550" y2="250" stroke="#000000" stroke-width="1.5" stroke-dasharray="6,4" />
+  <text x="60" y="240" font-family="sans-serif" font-size="12" fill="#000000" font-style="italic">Principal Axis</text>
+
+  <!-- CONVEX MIRROR GRAPHIC -->
+  <g id="convex-mirror-group">
+    <!-- Shaded silvered backing (hatched lines indicating non-reflective side) -->
+    <path d="M 290 100 A 250 250 0 0 0 260 250 A 250 250 0 0 0 290 400 L 305 400 A 265 265 0 0 1 275 250 A 265 265 0 0 1 305 100 Z"
+          fill="url(#silvering-hatch)" stroke="none" />
+
+    <!-- Mirror reflective curve (thick solid black arc) -->
+    <path id="reflecting-surface" 
+          d="M 290 100 A 250 250 0 0 0 260 250 A 250 250 0 0 0 290 400" 
+          fill="none" 
+          stroke="#000000" 
+          stroke-width="5" 
+          stroke-linecap="round" />
+
+    <!-- Back surface boundary line -->
+    <path d="M 305 100 A 265 265 0 0 1 275 250 A 265 265 0 0 1 305 400"
+          fill="none"
+          stroke="#000000"
+          stroke-width="1" />
+
+    <!-- Mirror end caps -->
+    <line x1="290" y1="100" x2="305" y2="100" stroke="#000000" stroke-width="2" />
+    <line x1="290" y1="400" x2="305" y2="400" stroke="#000000" stroke-width="2" />
+
+    <!-- Individual slant hatch marks (classic textbook silvering) -->
+    <g stroke="#000000" stroke-width="1.5">
+      <line x1="290" y1="115" x2="302" y2="107" />
+      <line x1="284" y1="135" x2="296" y2="127" />
+      <line x1="279" y1="155" x2="291" y2="147" />
+      <line x1="274" y1="175" x2="286" y2="167" />
+      <line x1="270" y1="195" x2="282" y2="187" />
+      <line x1="267" y1="215" x2="279" y2="207" />
+      <line x1="264" y1="235" x2="276" y2="227" />
+      <line x1="263" y1="250" x2="275" y2="242" />
+      <line x1="264" y1="265" x2="276" y2="257" />
+      <line x1="267" y1="285" x2="279" y2="277" />
+      <line x1="270" y1="305" x2="282" y2="297" />
+      <line x1="274" y1="325" x2="286" y2="317" />
+      <line x1="279" y1="345" x2="291" y2="337" />
+      <line x1="284" y1="365" x2="296" y2="357" />
+      <line x1="290" y1="385" x2="302" y2="377" />
+    </g>
+
+    <!-- Key Optical Points -->
+    <!-- Pole (P) -->
+    <circle cx="260" cy="250" r="4" fill="#000000" />
+    <text x="245" y="270" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="bold" fill="#000000">P</text>
+    <text x="235" y="285" font-family="'Segoe UI', sans-serif" font-size="10" fill="#333333">(Pole)</text>
+
+    <!-- Focus (F) - virtual, behind mirror -->
+    <circle cx="385" cy="250" r="4" fill="#000000" />
+    <text x="380" y="270" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="bold" fill="#000000">F</text>
+    <text x="365" y="285" font-family="'Segoe UI', sans-serif" font-size="10" fill="#333333">(Focus)</text>
+
+    <!-- Center of Curvature (C) - virtual, behind mirror -->
+    <circle cx="510" cy="250" r="4" fill="#000000" />
+    <text x="505" y="270" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="bold" fill="#000000">C</text>
+    <text x="450" y="285" font-family="'Segoe UI', sans-serif" font-size="10" fill="#333333">(Center of Curvature)</text>
+
+    <!-- Aperture Marks (M1, M2) -->
+    <text x="295" y="95" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="bold" fill="#000000">M₁</text>
+    <text x="295" y="420" font-family="'Segoe UI', sans-serif" font-size="13" font-weight="bold" fill="#000000">M₂</text>
+
+    <!-- Reflective surface arrow indicator -->
+    <path d="M 180 180 L 250 210" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)" />
+    <text x="90" y="175" font-family="'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#000000">Reflective Surface</text>
+    <text x="90" y="190" font-family="'Segoe UI', sans-serif" font-size="10" fill="#555555">(Curved Outward)</text>
+  </g>
+</svg>
