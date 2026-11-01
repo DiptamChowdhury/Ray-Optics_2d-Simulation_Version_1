@@ -1,0 +1,2347 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Disappearing Image — Mirrors & Lenses Ray Optics Simulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 999px;
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #ffffff;
+      margin-top: -7px;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #7dd3fc;
+    }
+    input[type="range"].eye-slider::-webkit-slider-thumb {
+      background: #a855f7;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.8);
+    }
+    input[type="range"].eye-slider::-webkit-slider-thumb:hover {
+      background: #c084fc;
+    }
+    /* Subtle Grid Background for Canvas */
+    .canvas-bg {
+      background-color: #0b1120;
+      background-image: 
+        linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+      background-size: 25px 25px;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+      50% { box-shadow: 0 0 18px 4px rgba(56, 189, 248, 0.25); }
+    }
+    .glow-card {
+      animation: pulseGlow 3s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+  <!-- TOP NAVIGATION / HEADER -->
+  <header class="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <!-- Optical SVG Icon -->
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3c4 5 4 13 0 18" stroke-linecap="round"/>
+            <path d="M3 12h14M10 7l7 5-7 5" stroke-opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">The Disappearing Image</h1>
+            <span id="headerOpticBadge" class="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">Concave Mirror</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- OFFICIAL 4-MODE OPTICAL ELEMENT SELECTOR TABS -->
+      <div class="flex flex-wrap items-center gap-1.5 bg-slate-900/95 p-1.5 rounded-xl border border-slate-800">
+        <button data-optic="concave_mirror" class="optic-mode-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20 transition">
+          Concave Mirror
+        </button>
+        <button data-optic="convex_mirror" class="optic-mode-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+          Convex Mirror
+        </button>
+        <button data-optic="convex_lens" class="optic-mode-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+          Convex Lens
+        </button>
+        <button data-optic="concave_lens" class="optic-mode-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+          Concave Lens
+        </button>
+      </div>
+
+      <!-- Header Controls -->
+      <div class="flex items-center gap-2.5">
+        <button id="btnReset" class="px-3 py-2 rounded-lg text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 transition">
+          Reset Default
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-4 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+    <!-- LEFT COLUMN: INTERACTIVE RAY DIAGRAM & CONTROLS (7 COLS) -->
+    <div class="lg:col-span-7 flex flex-col gap-4 min-w-0">
+
+      <!-- Canvas Card -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-hidden shadow-2xl relative">
+        <!-- Top Status Bar inside Canvas Card -->
+        <div class="px-4 py-2.5 bg-slate-900/95 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span id="regimeBadge" class="px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+              VIRTUAL IMAGE (Behind Mirror)
+            </span>
+            <span id="sideNoteBadge" class="text-xs text-slate-400 font-medium">
+              • Formed on Right Side (x &gt; 0)
+            </span>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>Drag Object
+            </span>
+            <span id="dragDetectorHintWrap" class="flex items-center gap-1.5">
+              <span id="dragDetectorDot" class="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span><span id="dragDetectorLabel">Drag Eye (2D: X &amp; Y)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- HTML5 Canvas Container -->
+        <div class="relative w-full h-[380px] sm:h-[440px] canvas-bg select-none">
+          <canvas id="opticsCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+
+          <!-- Floating Legend Overlay (Bottom Left of Canvas) -->
+          <div class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md border border-slate-800/90 rounded-xl px-3 py-2 text-[11px] text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1 pointer-events-none">
+            <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 bg-rose-400 inline-block"></span><span id="legendRay1">Parallel Ray (via F)</span></span>
+            <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 bg-amber-300 inline-block"></span><span id="legendRay2">Pole Ray (∠i = ∠r)</span></span>
+            <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 border-b-2 border-dashed border-cyan-400 inline-block"></span>Brain-Traced Virtual Extension</span>
+            <span id="legendDetectorItem" class="flex items-center gap-1.5"><span class="w-3 h-2 bg-purple-400/30 border border-purple-400 inline-block"></span>Eye Lens &amp; Retina Bundle</span>
+          </div>
+        </div>
+
+        <!-- Live NCERT Cartesian Telemetry Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-800 border-t border-slate-800 bg-slate-950/90 text-center">
+          <div class="p-2.5">
+            <div class="text-[11px] text-slate-400 uppercase font-semibold">Focal Length (f)</div>
+            <div id="telF" class="text-sm sm:text-base font-bold text-slate-200 mono mt-0.5">-150 px</div>
+          </div>
+          <div class="p-2.5">
+            <div class="text-[11px] text-slate-400 uppercase font-semibold">Object Dist (u)</div>
+            <div id="telU" class="text-sm sm:text-base font-bold text-amber-400 mono mt-0.5">-90 px</div>
+          </div>
+          <div class="p-2.5">
+            <div class="text-[11px] text-slate-400 uppercase font-semibold">Image Dist (v)</div>
+            <div id="telV" class="text-sm sm:text-base font-bold text-cyan-400 mono mt-0.5">+225 px</div>
+          </div>
+          <div class="p-2.5">
+            <div class="text-[11px] text-slate-400 uppercase font-semibold">Magnification (m)</div>
+            <div id="telM" class="text-sm sm:text-base font-bold text-emerald-400 mono mt-0.5">+2.50×</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Presets Card -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5 flex flex-col gap-4 shadow-xl">
+        <!-- Sliders Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Object Distance Slider -->
+          <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label for="objectSlider" class="text-xs sm:text-sm font-bold text-amber-300 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                1. Object Distance (|u|)
+              </label>
+              <span id="objectDistLabel" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                90 px (Inside F)
+              </span>
+            </div>
+            <input id="objectSlider" type="range" min="45" max="360" value="90" class="w-full">
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1.5 font-mono">
+              <span id="objMinTick">Near P (45px)</span>
+              <span class="text-sky-400 font-semibold">Focus |F| (150px)</span>
+              <span class="text-indigo-400 font-semibold">2F (300px)</span>
+              <span>Far (360px)</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Detector Position Slider (Changes between Eye Mode, Screen Mode, and None Mode) -->
+          <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <div id="eyeSliderControlGroup" class="space-y-2.5">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="eyeSliderX" class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                    4A. Eye X-Pos (Can Cross Optic)
+                  </label>
+                  <span id="eyeDistLabel" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                    x = -330 px
+                  </span>
+                </div>
+                <input id="eyeSliderX" type="range" min="-440" max="440" value="-330" class="w-full eye-slider">
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="eyeSliderY" class="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-fuchsia-400"></span>
+                    4B. Eye Y-Axis Height (Up / Down)
+                  </label>
+                  <span id="eyeYLabel" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30">
+                    y = +26 px
+                  </span>
+                </div>
+                <input id="eyeSliderY" type="range" min="-135" max="135" value="26" class="w-full eye-slider">
+              </div>
+            </div>
+
+            <div id="screenSliderControlGroup" class="hidden">
+              <div class="flex justify-between items-center mb-2">
+                <label for="screenSlider" class="text-xs sm:text-sm font-bold text-sky-300 flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                  4. Physical Screen Position (x)
+                </label>
+                <div class="flex items-center gap-1.5">
+                  <button id="btnSnapScreen" class="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500 text-slate-950 hover:bg-sky-400 transition">
+                    Snap to Image (v)
+                  </button>
+                  <span id="screenDistLabel" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                    +225 px
+                  </span>
+                </div>
+              </div>
+              <input id="screenSlider" type="range" min="-360" max="360" value="225" class="w-full">
+              <div class="flex justify-between text-[10px] text-slate-400 mt-1.5 font-mono">
+                <span>Left (-360px)</span>
+                <span>Center (0)</span>
+                <span>Right (+360px)</span>
+              </div>
+            </div>
+
+            <div id="noneSliderControlGroup" class="hidden flex flex-col justify-between h-full py-1">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs sm:text-sm font-bold text-slate-300 flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                  4. No Detector Active (Pure Ray Diagram)
+                </span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                  Rays Only
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 leading-relaxed mb-2.5">
+                Eye and Screen detectors are hidden so you can inspect the unobstructed principal rays, focal points, and image formation.
+              </p>
+              <div class="flex items-center gap-2">
+                <button id="btnQuickEnableEye" class="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-[11px] font-semibold transition">
+                  👁️ Enable Eye
+                </button>
+                <button id="btnQuickEnableScreen" class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-[11px] font-semibold transition">
+                  ⬛ Enable Screen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick-Jump Regime Presets & Animation -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-xs font-semibold text-slate-400 mr-1">Quick Presets:</span>
+            <button id="presetBtn1" data-u="90" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition">
+              Inside F (|u| &lt; f • Virtual)
+            </button>
+            <button id="presetBtn2" data-u="150" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+              At Focus (|u| = f)
+            </button>
+            <button id="presetBtn3" data-u="225" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+              Between F &amp; 2F (|u| = 225)
+            </button>
+            <button id="presetBtn4" data-u="340" class="preset-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+              Beyond 2F (|u| = 340)
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label id="eyeConeToggleWrap" class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none bg-slate-800/90 px-2.5 py-1.5 rounded-lg border border-slate-700">
+              <input type="checkbox" id="chkEyeCone" checked class="rounded accent-purple-500">
+              <span>Show Eye Ray Bundle</span>
+            </label>
+            <button id="btnAnimate" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition">
+              <span id="animIcon">▶</span>
+              <span id="animText">Sweep Object</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: EXCLUSIVE DETECTOR INSPECTOR (5 COLS) -->
+    <div class="lg:col-span-5 flex flex-col gap-4 min-w-0">
+
+      <!-- EXCLUSIVE DETECTOR MODE SWITCHER (EYE, SCREEN, OR NONE — ONE AT A TIME) -->
+      <div class="rounded-2xl border border-slate-700/90 bg-slate-900/90 p-3.5 shadow-xl">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-400">Select Active Optical Detector (One at a Time)</span>
+          <span id="activeDetectorBadge" class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            Active: Human Eye + Retina
+          </span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+          <button id="btnModeEye" class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 transition">
+            <span>👁️ Human Eye</span>
+          </button>
+          <button id="btnModeScreen" class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+            <span>⬛ Paper Screen</span>
+          </button>
+          <button id="btnModeNone" class="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+            <span>🚫 None (Rays Only)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- EXCLUSIVE CONTAINER A: HUMAN EYE & ANATOMICAL RETINA FORMATION VIEW -->
+      <!-- =================================================================== -->
+      <div id="eyeDetectorPanel" class="flex flex-col gap-4">
+
+        <!-- 1. ANATOMICAL EYE & RETINA INNER IMAGE FORMATION CANVAS -->
+        <div class="rounded-2xl border border-purple-500/40 bg-slate-900/85 overflow-hidden flex flex-col shadow-xl">
+          <div class="px-4 py-2.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse"></span>
+              <h3 class="text-xs sm:text-sm font-bold text-white">Inside the Eye: Lens &amp; Retina Image Formation</h3>
+            </div>
+            <span id="retinaStatusPill" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              REAL INVERTED ON RETINA
+            </span>
+          </div>
+
+          <!-- Live Anatomical Eyeball Cross-Section Canvas -->
+          <div class="relative h-52 bg-slate-950 flex items-center justify-center">
+            <canvas id="retinaZoomCanvas" class="w-full h-full block"></canvas>
+          </div>
+
+          <div class="p-3 bg-slate-900/95 border-t border-slate-800 text-xs text-slate-300 space-y-1.5">
+            <p id="retinaFormationCaption" class="leading-relaxed">
+              <strong>Step 1 (Physical):</strong> Even though outgoing rays are <em>diverging</em>, your eye’s internal <strong>Convex Crystalline Lens</strong> bends them inward to physically converge on the curved <strong>Retina</strong> wall as a real, inverted image!
+            </p>
+            <div class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-400">Retina Wall State:</span>
+              <span id="retinaStatusText" class="text-emerald-400 font-semibold">Focused Real &amp; Inverted Image on Rods/Cones</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. WHAT THE BRAIN CONSCIOUSLY PERCEIVES -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden flex flex-col shadow-xl">
+          <div class="px-4 py-2.5 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+              <h3 id="brainViewportHeading" class="text-xs sm:text-sm font-bold text-white">5. What Your Brain Perceives (Looking Into Optic)</h3>
+            </div>
+            <span id="eyeStatusPill" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              CLEARLY VISIBLE
+            </span>
+          </div>
+
+          <div class="relative h-44 bg-slate-950 flex items-center justify-center p-2">
+            <canvas id="eyeViewCanvas" class="w-full h-full block"></canvas>
+          </div>
+
+          <div class="p-3 bg-slate-900/95 border-t border-slate-800 text-xs text-slate-300">
+            <p id="eyeViewCaption" class="leading-relaxed">
+              <strong>Step 2 (Perceptual):</strong> The optic nerve sends the retinal signal to your brain, which automatically flips the inverted retinal image upright and traces the rays backward to perceive the image!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- EXCLUSIVE CONTAINER B: PHYSICAL PROJECTION SCREEN DETECTOR VIEW     -->
+      <!-- =================================================================== -->
+      <div id="screenDetectorPanel" class="hidden flex flex-col gap-4">
+        <div class="rounded-2xl border border-sky-500/40 bg-slate-900/85 overflow-hidden flex flex-col shadow-xl">
+          <div class="px-4 py-3 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-white">Physical Paper Screen Surface Inspection</h3>
+                <p class="text-[11px] text-slate-400">Screen placed at <span id="screenPosText" class="mono text-sky-300 font-semibold">x = +225 px</span></p>
+              </div>
+            </div>
+            <span id="screenStatusPill" class="text-[10px] font-bold px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              BLANK (0% LIGHT)
+            </span>
+          </div>
+
+          <div class="relative h-64 bg-slate-950 flex items-center justify-center p-3">
+            <canvas id="screenViewCanvas" class="w-full h-full block"></canvas>
+          </div>
+
+          <div class="p-4 bg-slate-900/95 border-t border-slate-800 text-xs text-slate-300 space-y-2">
+            <p id="screenViewCaption" class="leading-relaxed">
+              No physical light rays ever travel behind the mirror. A paper screen placed at v = +225 px remains completely dark.
+            </p>
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+              <span class="text-slate-400">Light Convergence on Screen:</span>
+              <span id="screenRaysText" class="text-rose-400 font-semibold">0 Rays (Dashed Virtual Only)</span>
+            </div>
+            <div class="pt-1 flex items-center justify-between gap-2">
+              <button id="btnSnapScreenPanel" class="px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 font-semibold text-xs transition">
+                🎯 Snap Screen to Theoretical Image (v)
+              </button>
+              <button id="btnSwitchToEyeQuick" class="px-3 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-semibold text-xs transition">
+                👁️ Switch to Eye Detector to Compare →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- EXCLUSIVE CONTAINER C: NONE / PURE RAY DIAGRAM SUMMARY VIEW         -->
+      <!-- =================================================================== -->
+      <div id="noneDetectorPanel" class="hidden flex flex-col gap-4">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/85 overflow-hidden flex flex-col shadow-xl">
+          <div class="px-4 py-3 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-white">Pure Ray Diagram Mode (No Detector Obstruction)</h3>
+                <p class="text-[11px] text-slate-400">Live Optical Telemetry &amp; Image Characteristics</p>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+              RAYS ONLY
+            </span>
+          </div>
+
+          <div class="p-4 space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-2.5">
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/90">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Active Optical Element</div>
+                <div id="noneSumOptic" class="text-sm font-bold text-sky-400 mt-0.5">Concave Mirror</div>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/90">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Image Nature</div>
+                <div id="noneSumNature" class="text-sm font-bold text-cyan-400 mt-0.5">Virtual &amp; Upright</div>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/90">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Object (u) &amp; Focal (f)</div>
+                <div id="noneSumUF" class="text-sm font-bold text-amber-400 mono mt-0.5">u = -90px, f = -150px</div>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/90">
+                <div class="text-[10px] text-slate-400 uppercase font-semibold">Image (v) &amp; Mag (m)</div>
+                <div id="noneSumVM" class="text-sm font-bold text-emerald-400 mono mt-0.5">v = +225px, m = +2.50×</div>
+              </div>
+            </div>
+
+            <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 text-slate-300 leading-relaxed" id="noneSumDescription">
+              Outgoing rays diverge after interacting with the optic. Tracing these diverging rays backward (dashed cyan lines) locates the virtual image.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-3 px-6 text-center text-xs text-slate-500">
+    Built for <strong class="text-slate-400">The Disappearing Image</strong> Ray Optics Simulation • Standard NCERT Class 12 Cartesian Sign Convention (<span id="footerEquation" class="mono text-sky-400">Mirror: 1/v + 1/u = 1/f</span>)
+  </footer>
+
+  <!-- COMPLETE PHYSICS & INTERACTION ENGINE FOR ALL 4 MODES -->
+  <script>
+    (function() {
+      // =========================================================================
+      // 1. STATE & OPTICAL CONSTANTS (NCERT CARTESIAN SIGN CONVENTION)
+      // Optical Center O / Pole P is at (0,0). Incident light travels Left -> Right.
+      // Object is always placed on the Left (u < 0).
+      // =========================================================================
+      const FOCAL_MAG = 150;     // |f| = 150 px
+      const OBJ_HEIGHT = 48;     // h_o = +48 px
+
+      const OPTIC_CONFIGS = {
+        concave_mirror: {
+          name: 'Concave Mirror',
+          type: 'mirror',
+          f: -150,
+          defaultU: 90,
+          defaultEyeX: -310,
+          defaultEyeY: 26,
+          equationText: 'Mirror Formula: 1/v + 1/u = 1/f , m = -v/u'
+        },
+        convex_mirror: {
+          name: 'Convex Mirror',
+          type: 'mirror',
+          f: +150,
+          defaultU: 140,
+          defaultEyeX: -310,
+          defaultEyeY: 26,
+          equationText: 'Mirror Formula: 1/v + 1/u = 1/f , m = -v/u'
+        },
+        convex_lens: {
+          name: 'Convex Lens',
+          type: 'lens',
+          f: +150,
+          defaultU: 90,
+          defaultEyeX: 310,
+          defaultEyeY: 26,
+          equationText: 'Lens Formula: 1/v - 1/u = 1/f , m = +v/u'
+        },
+        concave_lens: {
+          name: 'Concave Lens',
+          type: 'lens',
+          f: -150,
+          defaultU: 180,
+          defaultEyeX: 290,
+          defaultEyeY: 26,
+          equationText: 'Lens Formula: 1/v - 1/u = 1/f , m = +v/u'
+        }
+      };
+
+      const state = {
+        opticMode: 'concave_mirror', // 'concave_mirror' | 'convex_mirror' | 'convex_lens' | 'concave_lens'
+        uAbs: 90,                    // |u| distance on the left of optic (px), so u = -uAbs
+        detectorMode: 'eye',         // EXCLUSIVE: 'eye' | 'screen' | 'none'
+        eyeX: -310,                  // Optical X position of observer eye (-440 to +440, can cross mirror/lens!)
+        eyeY: 26,                    // Optical Y position of observer eye (-135 to +135, moves along Y-axis!)
+        screenX: 225,                // Screen optical x position
+        autoSnapScreen: true,        // Automatically snap screen to v when moving object unless dragged
+        showEyeCone: true,           // Show bundle of rays entering eye
+        animating: false,
+        animDir: 1,
+        dragging: null               // 'object' | 'eye' | 'screen' | null
+      };
+
+      // DOM Elements
+      const opticsCanvas = document.getElementById('opticsCanvas');
+      const ctx = opticsCanvas.getContext('2d');
+      const retinaZoomCanvas = document.getElementById('retinaZoomCanvas');
+      const retinaCtx = retinaZoomCanvas.getContext('2d');
+      const eyeViewCanvas = document.getElementById('eyeViewCanvas');
+      const eyeCtx = eyeViewCanvas.getContext('2d');
+      const screenViewCanvas = document.getElementById('screenViewCanvas');
+      const screenCtx = screenViewCanvas.getContext('2d');
+
+      const headerOpticBadge = document.getElementById('headerOpticBadge');
+      const footerEquation = document.getElementById('footerEquation');
+      const legendRay1 = document.getElementById('legendRay1');
+      const legendRay2 = document.getElementById('legendRay2');
+      const legendDetectorItem = document.getElementById('legendDetectorItem');
+      const dragDetectorHintWrap = document.getElementById('dragDetectorHintWrap');
+      const dragDetectorDot = document.getElementById('dragDetectorDot');
+      const dragDetectorLabel = document.getElementById('dragDetectorLabel');
+
+      const objectSlider = document.getElementById('objectSlider');
+      const eyeSliderX = document.getElementById('eyeSliderX');
+      const eyeSliderY = document.getElementById('eyeSliderY');
+      const screenSlider = document.getElementById('screenSlider');
+      const objectDistLabel = document.getElementById('objectDistLabel');
+      const eyeDistLabel = document.getElementById('eyeDistLabel');
+      const eyeYLabel = document.getElementById('eyeYLabel');
+      const screenDistLabel = document.getElementById('screenDistLabel');
+
+      const eyeSliderControlGroup = document.getElementById('eyeSliderControlGroup');
+      const screenSliderControlGroup = document.getElementById('screenSliderControlGroup');
+      const noneSliderControlGroup = document.getElementById('noneSliderControlGroup');
+      const eyeConeToggleWrap = document.getElementById('eyeConeToggleWrap');
+
+      const btnModeEye = document.getElementById('btnModeEye');
+      const btnModeScreen = document.getElementById('btnModeScreen');
+      const btnModeNone = document.getElementById('btnModeNone');
+      const btnQuickEnableEye = document.getElementById('btnQuickEnableEye');
+      const btnQuickEnableScreen = document.getElementById('btnQuickEnableScreen');
+      const activeDetectorBadge = document.getElementById('activeDetectorBadge');
+      const eyeDetectorPanel = document.getElementById('eyeDetectorPanel');
+      const screenDetectorPanel = document.getElementById('screenDetectorPanel');
+      const noneDetectorPanel = document.getElementById('noneDetectorPanel');
+      const btnSnapScreen = document.getElementById('btnSnapScreen');
+      const btnSnapScreenPanel = document.getElementById('btnSnapScreenPanel');
+      const btnSwitchToEyeQuick = document.getElementById('btnSwitchToEyeQuick');
+
+      const noneSumOptic = document.getElementById('noneSumOptic');
+      const noneSumNature = document.getElementById('noneSumNature');
+      const noneSumUF = document.getElementById('noneSumUF');
+      const noneSumVM = document.getElementById('noneSumVM');
+      const noneSumDescription = document.getElementById('noneSumDescription');
+
+      const telF = document.getElementById('telF');
+      const telU = document.getElementById('telU');
+      const telV = document.getElementById('telV');
+      const telM = document.getElementById('telM');
+      const regimeBadge = document.getElementById('regimeBadge');
+      const sideNoteBadge = document.getElementById('sideNoteBadge');
+      const screenPosText = document.getElementById('screenPosText');
+
+      const retinaStatusPill = document.getElementById('retinaStatusPill');
+      const retinaFormationCaption = document.getElementById('retinaFormationCaption');
+      const eyeStatusPill = document.getElementById('eyeStatusPill');
+      const eyeViewCaption = document.getElementById('eyeViewCaption');
+      const retinaStatusText = document.getElementById('retinaStatusText');
+
+      const screenStatusPill = document.getElementById('screenStatusPill');
+      const screenViewCaption = document.getElementById('screenViewCaption');
+      const screenRaysText = document.getElementById('screenRaysText');
+
+      const chkEyeCone = document.getElementById('chkEyeCone');
+      const btnAnimate = document.getElementById('btnAnimate');
+      const animIcon = document.getElementById('animIcon');
+      const animText = document.getElementById('animText');
+      const btnReset = document.getElementById('btnReset');
+
+      const presetBtn1 = document.getElementById('presetBtn1');
+      const presetBtn2 = document.getElementById('presetBtn2');
+      const presetBtn3 = document.getElementById('presetBtn3');
+      const presetBtn4 = document.getElementById('presetBtn4');
+
+      // =========================================================================
+      // 2. EXACT MIRROR & LENS EQUATION SOLVER + EYE DYSFUNCTIONAL CHECK
+      // =========================================================================
+      function isEyeDysfunctional(isLens, eyeX) {
+        // For Mirrors: Reflected rays only exist in front of the mirror (x < 0).
+        // If the eye moves past the mirror to the right side (eyeX >= -12), no reflected light reaches it!
+        if (!isLens) {
+          return eyeX >= -12;
+        }
+        // For Lenses: Refracted rays exit to the right side of the lens (x > 0).
+        // If the eye moves past the lens to the left side (eyeX <= 12), no refracted light from the lens reaches it!
+        return eyeX <= 12;
+      }
+
+      function computeOptics() {
+        const cfg = OPTIC_CONFIGS[state.opticMode];
+        const isLens = cfg.type === 'lens';
+        const u = -state.uAbs;
+        const f = cfg.f;
+        const eyeDysfunctional = isEyeDysfunctional(isLens, state.eyeX);
+
+        // Check if object is at principal focus for converging elements (concave mirror or convex lens)
+        const isConvergingDevice = (state.opticMode === 'concave_mirror' || state.opticMode === 'convex_lens');
+        if (isConvergingDevice && Math.abs(state.uAbs - FOCAL_MAG) < 1.2) {
+          return {
+            isLens,
+            opticName: cfg.name,
+            u,
+            f,
+            v: Infinity,
+            m: Infinity,
+            h_i: Infinity,
+            isVirtual: false,
+            atFocus: true,
+            eyeX: state.eyeX,
+            eyeY: state.eyeY,
+            eyeDysfunctional
+          };
+        }
+
+        let v, m;
+        if (!isLens) {
+          // Mirror Equation: 1/v + 1/u = 1/f => v = (f * u) / (u - f), m = -v / u
+          v = (f * u) / (u - f);
+          m = -v / u;
+        } else {
+          // Lens Equation: 1/v - 1/u = 1/f => v = (f * u) / (u + f), m = v / u
+          v = (f * u) / (u + f);
+          m = v / u;
+        }
+
+        const h_i = m * OBJ_HEIGHT;
+        // For Mirrors: Virtual image has v > 0 (behind mirror, right side).
+        // For Lenses: Virtual image has v < 0 (same side as object, left side).
+        const isVirtual = isLens ? (v < 0) : (v > 0);
+
+        if (state.autoSnapScreen && Number.isFinite(v)) {
+          state.screenX = Math.max(-360, Math.min(360, Math.round(v)));
+          screenSlider.value = state.screenX;
+        }
+
+        return {
+          isLens,
+          opticName: cfg.name,
+          u,
+          f,
+          v,
+          m,
+          h_i,
+          isVirtual,
+          atFocus: false,
+          eyeX: state.eyeX,
+          eyeY: state.eyeY,
+          eyeDysfunctional
+        };
+      }
+
+      // =========================================================================
+      // 3. CANVAS SIZING & COORDINATE TRANSFORMS
+      // =========================================================================
+      function resizeCanvases() {
+        const dpr = window.devicePixelRatio || 1;
+
+        [opticsCanvas, retinaZoomCanvas, eyeViewCanvas, screenViewCanvas].forEach(c => {
+          if (!c) return;
+          const rect = c.getBoundingClientRect();
+          if (rect.width === 0 || rect.height === 0) return;
+          c.width = rect.width * dpr;
+          c.height = rect.height * dpr;
+          const context = c.getContext('2d');
+          context.setTransform(dpr, 0, 0, dpr, 0, 0);
+        });
+
+        renderAll();
+      }
+
+      window.addEventListener('resize', resizeCanvases);
+
+      function getOrigin(canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const isLens = OPTIC_CONFIGS[state.opticMode].type === 'lens';
+        return {
+          w: rect.width,
+          h: rect.height,
+          // Center lens at 50% width so both left and right sides have symmetric room; mirrors at 58%
+          px: rect.width * (isLens ? 0.50 : 0.58),
+          py: rect.height * 0.54
+        };
+      }
+
+      function toCanvas(origin, x, y) {
+        const scale = Math.min(1, origin.w / 780);
+        return {
+          cx: origin.px + x * scale,
+          cy: origin.py - y * scale,
+          scale
+        };
+      }
+
+      function toOpticalX(origin, cx) {
+        const scale = Math.min(1, origin.w / 780);
+        return (cx - origin.px) / scale;
+      }
+
+      function toOpticalY(origin, cy) {
+        const scale = Math.min(1, origin.w / 780);
+        return (origin.py - cy) / scale;
+      }
+
+      // =========================================================================
+      // 4. MAIN RAY DIAGRAM RENDERER (ALL 4 MODES + 3 DETECTOR MODES)
+      // =========================================================================
+      function drawMainDiagram(optics) {
+        const orig = getOrigin(opticsCanvas);
+        const { w, h, px, py } = orig;
+        const s = Math.min(1, w / 780);
+
+        ctx.clearRect(0, 0, w, h);
+
+        // 4.1 Background Region Shading & Headers
+        if (!optics.isLens) {
+          // MIRROR: Left is Real Space, Right is Virtual Space behind mirror
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+          ctx.fillRect(px, 0, w - px, h);
+
+          ctx.font = '600 11px Inter, sans-serif';
+          ctx.fillStyle = '#94a3b8';
+          ctx.textAlign = 'left';
+          ctx.fillText('◀ FRONT OF MIRROR (Real Space — Reflected Light Travels Here)', 14, 22);
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.textAlign = 'right';
+          ctx.fillText('BEHIND MIRROR (Virtual Space — No Physical Light) ▶', w - 14, 22);
+        } else {
+          // LENS: Left is Incident Side (Virtual image side), Right is Refracted Side (Real image side)
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.38)';
+          ctx.fillRect(0, 0, px, h);
+
+          ctx.font = '600 11px Inter, sans-serif';
+          ctx.fillStyle = '#94a3b8';
+          ctx.textAlign = 'left';
+          ctx.fillText('◀ INCIDENT SIDE (x < 0 • Virtual Image Side for Lens)', 14, 22);
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.textAlign = 'right';
+          ctx.fillText('TRANSMITTED SIDE (x > 0 • Refracted Rays & Observer Eye) ▶', w - 14, 22);
+        }
+
+        // 4.2 Principal Axis
+        ctx.save();
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, py);
+        ctx.lineTo(w, py);
+        ctx.stroke();
+        ctx.restore();
+
+        // 4.3 Draw Optical Element (Concave Mirror, Convex Mirror, Convex Lens, or Concave Lens)
+        const halfH = 136 * s;
+        drawOpticalElement(ctx, px, py, halfH, s, state.opticMode);
+
+        // 4.4 Draw Key Axis Points (P/O, F, 2F/C)
+        drawPrincipalAxisPoints(ctx, orig, optics);
+
+        // 4.5 Coordinates for Object, Hit Points, and Image
+        const objBase = toCanvas(orig, optics.u, 0);
+        const objTip = toCanvas(orig, optics.u, OBJ_HEIGHT);
+        const hitParallel = toCanvas(orig, 0, OBJ_HEIGHT);
+        const hitCenter = toCanvas(orig, 0, 0);
+
+        // 4.6 EXCLUSIVE MODE A: HUMAN EYE RAY BUNDLE (ONLY WHEN EYE IS FUNCTIONAL)
+        const eyePos = toCanvas(orig, optics.eyeX, optics.eyeY);
+        const eyeRadius = 26 * s;
+        // For mirrors, eye looks right (+1); for lenses, eye looks left (-1)
+        const lookDir = optics.isLens ? -1 : 1;
+        const lensX = eyePos.cx + lookDir * eyeRadius * 0.62;
+        const pupilHalf = 10 * s;
+
+        if (state.detectorMode === 'eye' && state.showEyeCone && !optics.atFocus && !optics.eyeDysfunctional) {
+          const imgTip = toCanvas(orig, optics.v, optics.h_i);
+          const pupilTop = { cx: lensX, cy: eyePos.cy - pupilHalf };
+          const pupilBot = { cx: lensX, cy: eyePos.cy + pupilHalf };
+
+          const intersectOpticY = (target) => {
+            const denom = target.cx - imgTip.cx;
+            if (Math.abs(denom) < 0.5) return target.cy;
+            const t = (px - imgTip.cx) / denom;
+            return imgTip.cy + t * (target.cy - imgTip.cy);
+          };
+
+          const mY1 = Math.max(py - halfH, Math.min(py + halfH, intersectOpticY(pupilTop)));
+          const mY2 = Math.max(py - halfH, Math.min(py + halfH, intersectOpticY(pupilBot)));
+
+          ctx.save();
+          // Shaded ray bundle from optic (x=0) to eye pupil at (eyeX, eyeY)
+          ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
+          ctx.beginPath();
+          ctx.moveTo(px, mY1);
+          ctx.lineTo(pupilTop.cx, pupilTop.cy);
+          ctx.lineTo(pupilBot.cx, pupilBot.cy);
+          ctx.lineTo(px, mY2);
+          ctx.closePath();
+          ctx.fill();
+
+          // Incident rays from object tip to optic plane
+          ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(objTip.cx, objTip.cy);
+          ctx.lineTo(px, mY1);
+          ctx.moveTo(objTip.cx, objTip.cy);
+          ctx.lineTo(px, mY2);
+          ctx.stroke();
+
+          // Outgoing rays from optic plane into the eye's pupil
+          ctx.strokeStyle = 'rgba(192, 132, 252, 0.9)';
+          ctx.lineWidth = 1.7;
+          ctx.beginPath();
+          ctx.moveTo(px, mY1);
+          ctx.lineTo(pupilTop.cx, pupilTop.cy);
+          ctx.moveTo(px, mY2);
+          ctx.lineTo(pupilBot.cx, pupilBot.cy);
+          ctx.stroke();
+
+          // Dashed backward brain-traced rays to virtual image tip
+          if (optics.isVirtual) {
+            ctx.strokeStyle = 'rgba(192, 132, 252, 0.55)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(px, mY1);
+            ctx.lineTo(imgTip.cx, imgTip.cy);
+            ctx.moveTo(px, mY2);
+            ctx.lineTo(imgTip.cx, imgTip.cy);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // 4.7 PRINCIPAL RAYS (RAY 1 & RAY 2)
+        if (!optics.isLens) {
+          // MIRROR PRINCIPAL RAYS
+          const focusPt = toCanvas(orig, optics.f, 0);
+
+          // Ray 1: Parallel to Axis -> Reflects through F (concave) or diverges from F (convex)
+          ctx.save();
+          ctx.lineWidth = 2.2;
+          drawRayWithArrow(ctx, objTip.cx, objTip.cy, hitParallel.cx, hitParallel.cy, '#fb7185');
+
+          // Reflected ray goes to Left (endX1 = 0) along line connecting Focus and hitParallel
+          const dx1 = focusPt.cx - hitParallel.cx;
+          const dy1 = focusPt.cy - hitParallel.cy;
+          const endX1 = 0;
+          const endY1 = hitParallel.cy + dy1 * ((endX1 - hitParallel.cx) / dx1);
+          drawRayWithArrow(ctx, hitParallel.cx, hitParallel.cy, endX1, endY1, '#fb7185');
+
+          // Dashed Virtual Extension behind mirror (to Right, virtX1 = w)
+          if (optics.isVirtual || optics.atFocus) {
+            const virtX1 = w;
+            const virtY1 = hitParallel.cy + dy1 * ((virtX1 - hitParallel.cx) / dx1);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([6, 5]);
+            ctx.beginPath();
+            ctx.moveTo(hitParallel.cx, hitParallel.cy);
+            ctx.lineTo(virtX1, virtY1);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // Ray 2: Incident at Pole P (0,0) -> Reflects symmetrically to Left
+          ctx.save();
+          ctx.lineWidth = 2.2;
+          drawRayWithArrow(ctx, objTip.cx, objTip.cy, hitCenter.cx, hitCenter.cy, '#fcd34d');
+
+          const objTipReflected = toCanvas(orig, optics.u, -OBJ_HEIGHT);
+          const dx2 = objTipReflected.cx - hitCenter.cx;
+          const dy2 = objTipReflected.cy - hitCenter.cy;
+          const endX2 = 0;
+          const endY2 = hitCenter.cy + dy2 * ((endX2 - hitCenter.cx) / dx2);
+          drawRayWithArrow(ctx, hitCenter.cx, hitCenter.cy, endX2, endY2, '#fcd34d');
+
+          if (optics.isVirtual || optics.atFocus) {
+            const virtX2 = w;
+            const virtY2 = hitCenter.cy + dy2 * ((virtX2 - hitCenter.cx) / dx2);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([6, 5]);
+            ctx.beginPath();
+            ctx.moveTo(hitCenter.cx, hitCenter.cy);
+            ctx.lineTo(virtX2, virtY2);
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else {
+          // LENS PRINCIPAL RAYS
+          const focusPt = toCanvas(orig, optics.f, 0); // +150 (F2) for convex lens, -150 (F1) for concave lens
+
+          // Ray 1: Parallel to Axis -> Refracts to Right (endX1 = w) aligned with focusPt
+          ctx.save();
+          ctx.lineWidth = 2.2;
+          drawRayWithArrow(ctx, objTip.cx, objTip.cy, hitParallel.cx, hitParallel.cy, '#fb7185');
+
+          const dx1 = focusPt.cx - hitParallel.cx;
+          const dy1 = focusPt.cy - hitParallel.cy;
+          const endX1 = w;
+          const endY1 = hitParallel.cy + dy1 * ((endX1 - hitParallel.cx) / dx1);
+          drawRayWithArrow(ctx, hitParallel.cx, hitParallel.cy, endX1, endY1, '#fb7185');
+
+          // Dashed Virtual Extension backward to Left (virtX1 = 0) when virtual or atFocus
+          if (optics.isVirtual || optics.atFocus) {
+            const virtX1 = 0;
+            const virtY1 = hitParallel.cy + dy1 * ((virtX1 - hitParallel.cx) / dx1);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([6, 5]);
+            ctx.beginPath();
+            ctx.moveTo(hitParallel.cx, hitParallel.cy);
+            ctx.lineTo(virtX1, virtY1);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // Ray 2: Passes straight through Optical Center O (0,0) undeviated to Right
+          ctx.save();
+          ctx.lineWidth = 2.2;
+          drawRayWithArrow(ctx, objTip.cx, objTip.cy, hitCenter.cx, hitCenter.cy, '#fcd34d');
+
+          const dx2 = hitCenter.cx - objTip.cx;
+          const dy2 = hitCenter.cy - objTip.cy;
+          const endX2 = w;
+          const endY2 = hitCenter.cy + dy2 * ((endX2 - hitCenter.cx) / dx2);
+          drawRayWithArrow(ctx, hitCenter.cx, hitCenter.cy, endX2, endY2, '#fcd34d');
+
+          if (optics.isVirtual || optics.atFocus) {
+            const virtX2 = 0;
+            const virtY2 = hitCenter.cy + dy2 * ((virtX2 - hitCenter.cx) / dx2);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([6, 5]);
+            ctx.beginPath();
+            ctx.moveTo(hitCenter.cx, hitCenter.cy);
+            ctx.lineTo(virtX2, virtY2);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // 4.8 Draw Object Arrow (Draggable)
+        drawOpticalArrow(
+          ctx,
+          objBase.cx,
+          objBase.cy,
+          objTip.cx,
+          objTip.cy,
+          '#f59e0b',
+          false,
+          'OBJECT',
+          `u = ${Math.round(optics.u)}px`
+        );
+
+        // 4.9 Draw Image Location Marker
+        if (!optics.atFocus && Math.abs(optics.v) < 1400) {
+          const imgBase = toCanvas(orig, optics.v, 0);
+          const imgTip = toCanvas(orig, optics.v, optics.h_i);
+          const imgColor = optics.isVirtual ? '#22d3ee' : '#10b981';
+          const imgLabel = optics.isVirtual ? 'VIRTUAL IMAGE' : 'REAL IMAGE';
+
+          drawOpticalArrow(
+            ctx,
+            imgBase.cx,
+            imgBase.cy,
+            imgTip.cx,
+            imgTip.cy,
+            imgColor,
+            optics.isVirtual,
+            imgLabel,
+            `v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)}px`
+          );
+
+          ctx.save();
+          ctx.fillStyle = imgColor;
+          ctx.shadowColor = imgColor;
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(imgTip.cx, imgTip.cy, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else if (optics.atFocus) {
+          ctx.save();
+          ctx.fillStyle = '#f87171';
+          ctx.font = '700 12px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Outgoing Rays are Parallel — Image at Infinity (∞)', w * 0.5, 46);
+          ctx.restore();
+        }
+
+        // 4.10 DRAW ONLY THE SELECTED DETECTOR (EYE, SCREEN, OR NONE)
+        if (state.detectorMode === 'eye') {
+          drawAnatomicalEyeOnBench(ctx, eyePos.cx, eyePos.cy, s, optics);
+        } else if (state.detectorMode === 'screen') {
+          drawPhysicalScreenOnBench(ctx, orig, s, optics);
+        }
+      }
+
+      // Helper: Draw Concave Mirror, Convex Mirror, Convex Lens, or Concave Lens
+      function drawOpticalElement(context, px, py, halfH, s, mode) {
+        context.save();
+        if (mode === 'concave_mirror' || mode === 'convex_mirror') {
+          const sign = mode === 'concave_mirror' ? -1 : 1; // concave bends left (-1), convex bends right (+1)
+          const mirrorX = (yOff) => px + sign * (yOff * yOff) / (4 * 150 * s);
+
+          // Silvered hatches on the right (non-reflecting back side)
+          context.strokeStyle = '#475569';
+          context.lineWidth = 1.2;
+          for (let yOff = -halfH; yOff <= halfH; yOff += 10 * s) {
+            const mx = mirrorX(yOff);
+            context.beginPath();
+            context.moveTo(mx, py + yOff);
+            context.lineTo(mx + 9 * s, py + yOff - 6 * s);
+            context.stroke();
+          }
+
+          // Reflective Front Curve
+          context.strokeStyle = '#38bdf8';
+          context.lineWidth = 3.5;
+          context.shadowColor = 'rgba(56, 189, 248, 0.4)';
+          context.shadowBlur = 10;
+          context.beginPath();
+          for (let yOff = -halfH; yOff <= halfH; yOff += 2) {
+            const mx = mirrorX(yOff);
+            if (yOff === -halfH) context.moveTo(mx, py + yOff);
+            else context.lineTo(mx, py + yOff);
+          }
+          context.stroke();
+        } else if (mode === 'convex_lens') {
+          // Biconvex Lens Profile
+          const maxThick = 22 * s;
+          context.fillStyle = 'rgba(56, 189, 248, 0.18)';
+          context.strokeStyle = '#38bdf8';
+          context.lineWidth = 2.8;
+          context.shadowColor = 'rgba(56, 189, 248, 0.35)';
+          context.shadowBlur = 10;
+
+          context.beginPath();
+          for (let yOff = -halfH; yOff <= halfH; yOff += 2) {
+            const norm = yOff / halfH;
+            const lx = px - maxThick * (1 - norm * norm);
+            if (yOff === -halfH) context.moveTo(lx, py + yOff);
+            else context.lineTo(lx, py + yOff);
+          }
+          for (let yOff = halfH; yOff >= -halfH; yOff -= 2) {
+            const norm = yOff / halfH;
+            const rx = px + maxThick * (1 - norm * norm);
+            context.lineTo(rx, py + yOff);
+          }
+          context.closePath();
+          context.fill();
+          context.stroke();
+
+          // Vertical Optical Axis Line inside Lens
+          context.strokeStyle = 'rgba(186, 230, 253, 0.4)';
+          context.lineWidth = 1;
+          context.setLineDash([4, 4]);
+          context.beginPath();
+          context.moveTo(px, py - halfH);
+          context.lineTo(px, py + halfH);
+          context.stroke();
+        } else if (mode === 'concave_lens') {
+          // Biconcave Lens Profile
+          const minHalfW = 7 * s;
+          const edgeFlare = 16 * s;
+          context.fillStyle = 'rgba(56, 189, 248, 0.18)';
+          context.strokeStyle = '#38bdf8';
+          context.lineWidth = 2.8;
+          context.shadowColor = 'rgba(56, 189, 248, 0.35)';
+          context.shadowBlur = 10;
+
+          context.beginPath();
+          // Top edge
+          context.moveTo(px - minHalfW - edgeFlare, py - halfH);
+          context.lineTo(px + minHalfW + edgeFlare, py - halfH);
+          // Right inward curve
+          for (let yOff = -halfH; yOff <= halfH; yOff += 2) {
+            const norm = yOff / halfH;
+            const rx = px + minHalfW + edgeFlare * (norm * norm);
+            context.lineTo(rx, py + yOff);
+          }
+          // Bottom edge
+          context.lineTo(px - minHalfW - edgeFlare, py + halfH);
+          // Left inward curve
+          for (let yOff = halfH; yOff >= -halfH; yOff -= 2) {
+            const norm = yOff / halfH;
+            const lx = px - minHalfW - edgeFlare * (norm * norm);
+            context.lineTo(lx, py + yOff);
+          }
+          context.closePath();
+          context.fill();
+          context.stroke();
+
+          // Vertical Optical Axis Line inside Lens
+          context.strokeStyle = 'rgba(186, 230, 253, 0.4)';
+          context.lineWidth = 1;
+          context.setLineDash([4, 4]);
+          context.beginPath();
+          context.moveTo(px, py - halfH);
+          context.lineTo(px, py + halfH);
+          context.stroke();
+        }
+        context.restore();
+      }
+
+      // Helper: Draw Axis Points for Mirrors vs Lenses
+      function drawPrincipalAxisPoints(context, orig, optics) {
+        let points = [];
+        if (state.opticMode === 'concave_mirror') {
+          points = [
+            { x: -300, label: 'C (2F)', color: '#818cf8' },
+            { x: -150, label: 'F (Focus)', color: '#38bdf8' },
+            { x: 0, label: 'P (Pole)', color: '#f8fafc' }
+          ];
+        } else if (state.opticMode === 'convex_mirror') {
+          points = [
+            { x: -150, label: '-F (Front)', color: '#64748b' },
+            { x: 0, label: 'P (Pole)', color: '#f8fafc' },
+            { x: 150, label: 'F (Focus)', color: '#38bdf8' },
+            { x: 300, label: 'C (2F)', color: '#818cf8' }
+          ];
+        } else {
+          // Convex or Concave Lens: Symmetric F1, 2F1 and F2, 2F2 around Optical Center O
+          points = [
+            { x: -300, label: '2F₁', color: '#818cf8' },
+            { x: -150, label: 'F₁', color: '#38bdf8' },
+            { x: 0, label: 'O', color: '#f8fafc' },
+            { x: 150, label: 'F₂', color: '#38bdf8' },
+            { x: 300, label: '2F₂', color: '#818cf8' }
+          ];
+        }
+
+        points.forEach(pt => {
+          const pos = toCanvas(orig, pt.x, 0);
+          context.fillStyle = pt.color;
+          context.beginPath();
+          context.arc(pos.cx, pos.cy, 4, 0, Math.PI * 2);
+          context.fill();
+
+          context.font = '700 11px Inter, sans-serif';
+          context.textAlign = 'center';
+          context.fillText(pt.label, pos.cx, pos.cy + 18);
+        });
+      }
+
+      // Helper: Check if Observer Eye is too close to converge a Real Image
+      function isEyeTooCloseForRealImage(optics) {
+        if (optics.isVirtual || optics.atFocus) return false;
+        // For Mirror: Real image is at v < 0, eye is at eyeX < 0. Eye must be further left than v (eyeX < v) so rays cross before entering eye.
+        if (!optics.isLens) return optics.eyeX > optics.v;
+        // For Lens: Real image is at v > 0, eye is at eyeX > 0. Eye must be further right than v (eyeX > v) so rays cross before entering eye.
+        return optics.eyeX < optics.v;
+      }
+
+      // Helper: Draw line with directional arrowhead at midpoint
+      function drawRayWithArrow(context, x1, y1, x2, y2, color) {
+        context.save();
+        context.strokeStyle = color;
+        context.fillStyle = color;
+        context.beginPath();
+        context.moveTo(x1, y1);
+        context.lineTo(x2, y2);
+        context.stroke();
+
+        const mx = x1 + (x2 - x1) * 0.52;
+        const my = y1 + (y2 - y1) * 0.52;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const headLen = 7;
+
+        context.beginPath();
+        context.moveTo(mx, my);
+        context.lineTo(mx - headLen * Math.cos(angle - Math.PI / 6), my - headLen * Math.sin(angle - Math.PI / 6));
+        context.lineTo(mx - headLen * Math.cos(angle + Math.PI / 6), my - headLen * Math.sin(angle + Math.PI / 6));
+        context.closePath();
+        context.fill();
+        context.restore();
+      }
+
+      // Helper: Draw Object or Image vertical arrow
+      function drawOpticalArrow(context, bx, by, tx, ty, color, isDashed, title, sub) {
+        context.save();
+        context.strokeStyle = color;
+        context.fillStyle = color;
+        context.lineWidth = 3.2;
+        if (isDashed) context.setLineDash([5, 4]);
+
+        context.beginPath();
+        context.moveTo(bx, by);
+        context.lineTo(tx, ty);
+        context.stroke();
+        context.setLineDash([]);
+
+        const dir = ty < by ? -1 : 1;
+        context.beginPath();
+        context.moveTo(tx, ty);
+        context.lineTo(tx - 6, ty - dir * 10);
+        context.lineTo(tx + 6, ty - dir * 10);
+        context.closePath();
+        context.fill();
+
+        const labelY = ty + dir * 18;
+        context.font = '700 11px Inter, sans-serif';
+        context.textAlign = 'center';
+        context.fillText(title, tx, labelY);
+        context.font = '600 10px JetBrains Mono, monospace';
+        context.fillStyle = '#cbd5e1';
+        context.fillText(sub, tx, labelY + (dir < 0 ? -13 : 13));
+        context.restore();
+      }
+
+      // Helper: Draw Perceived Object Arrow + Letter 'R' inside Eye/Screen Viewports
+      function drawPerceivedObject(context, cx, cy, m, color, isBlurry) {
+        context.save();
+        if (isBlurry) {
+          context.filter = 'blur(4px)';
+          context.globalAlpha = 0.7;
+        }
+
+        const baseH = 34;
+        const h = m * baseH; // positive m = upright, negative m = inverted
+        const by = cy + h * 0.5;
+        const ty = cy - h * 0.5;
+        const dir = ty < by ? -1 : 1;
+
+        context.strokeStyle = color;
+        context.fillStyle = color;
+        context.lineWidth = 3.5;
+        context.beginPath();
+        context.moveTo(cx, by);
+        context.lineTo(cx, ty);
+        context.stroke();
+
+        const headSize = Math.min(8, Math.max(4, Math.abs(h) * 0.25));
+        context.beginPath();
+        context.moveTo(cx, ty);
+        context.lineTo(cx - headSize * 0.75, ty - dir * headSize);
+        context.lineTo(cx + headSize * 0.75, ty - dir * headSize);
+        context.closePath();
+        context.fill();
+
+        // Draw orientation letter 'R' beside arrow
+        const scaleMag = Math.max(0.45, Math.min(2.1, Math.abs(m)));
+        context.translate(cx + 22 * Math.max(0.7, scaleMag * 0.6), cy);
+        context.scale(scaleMag, m >= 0 ? scaleMag : -scaleMag);
+        context.font = '800 15px Inter, sans-serif';
+        context.fillStyle = '#fde047';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('R', 0, 0);
+
+        context.restore();
+      }
+
+      // Helper: Draw Detailed Anatomical Eye with Lens & Retina on Main Bench (Mode A)
+      function drawAnatomicalEyeOnBench(context, ex, ey, scale, optics) {
+        context.save();
+        const r = 26 * scale;
+        // Mirrors: eye looks right (lookDir = +1). Lenses: eye looks left (lookDir = -1).
+        const lookDir = optics.isLens ? -1 : 1;
+        const isDys = optics.eyeDysfunctional;
+
+        // Outer interactive drag halo
+        context.strokeStyle = isDys ? 'rgba(244, 63, 94, 0.75)' : 'rgba(168, 85, 247, 0.45)';
+        context.fillStyle = isDys ? 'rgba(69, 10, 10, 0.82)' : 'rgba(15, 23, 42, 0.9)';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(ex, ey, r + 5, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+
+        // Optic Nerve stalk exiting back of eyeball
+        const nerveX = lookDir === 1 ? (ex - r - 12 * scale) : (ex + r - 2 * scale);
+        context.fillStyle = '#334155';
+        context.strokeStyle = '#64748b';
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.roundRect(nerveX, ey - 5 * scale, 14 * scale, 10 * scale, 3);
+        context.fill();
+        context.stroke();
+
+        // Eyeball Sclera
+        context.fillStyle = '#0f172a';
+        context.strokeStyle = isDys ? '#f43f5e' : '#cbd5e1';
+        context.lineWidth = 2.2;
+        context.beginPath();
+        context.arc(ex, ey, r, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+
+        // Curved Sensitive RETINA Wall on the back inner wall of eyeball
+        const isFocused = !isDys && !isEyeTooCloseForRealImage(optics);
+        context.strokeStyle = isDys ? '#64748b' : (isFocused ? '#f43f5e' : '#fb7185');
+        context.lineWidth = 3.5;
+        context.beginPath();
+        if (lookDir === 1) {
+          context.arc(ex, ey, r - 2.5, Math.PI * 0.62, Math.PI * 1.38);
+        } else {
+          context.arc(ex, ey, r - 2.5, -Math.PI * 0.38, Math.PI * 0.38);
+        }
+        context.stroke();
+
+        // Crystalline Convex Eye Lens (facing the optic)
+        const lensX = ex + lookDir * r * 0.62;
+        context.fillStyle = isDys ? 'rgba(100, 116, 139, 0.45)' : 'rgba(56, 189, 248, 0.85)';
+        context.strokeStyle = isDys ? '#94a3b8' : '#bae6fd';
+        context.lineWidth = 1.2;
+        context.beginPath();
+        context.ellipse(lensX, ey, r * 0.2, r * 0.62, 0, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+
+        // Iris flaps
+        context.strokeStyle = isDys ? '#f43f5e' : '#a855f7';
+        context.lineWidth = 2.5;
+        context.beginPath();
+        context.moveTo(lensX + lookDir * 2, ey - r * 0.82);
+        context.lineTo(lensX + lookDir * 2, ey - r * 0.44);
+        context.moveTo(lensX + lookDir * 2, ey + r * 0.82);
+        context.lineTo(lensX + lookDir * 2, ey + r * 0.44);
+        context.stroke();
+
+        if (!isDys) {
+          // Refracted rays inside eyeball converging onto the Retina wall
+          const retinaHitX = isFocused
+            ? (ex - lookDir * (r - 4))
+            : (ex - lookDir * (r * 0.35));
+          const retinaTipY = ey + (optics.isVirtual ? 7 * scale : -7 * scale);
+
+          context.strokeStyle = isFocused ? '#4ade80' : '#fb7185';
+          context.lineWidth = 1.5;
+          context.beginPath();
+          context.moveTo(lensX, ey - 10 * scale);
+          context.lineTo(retinaHitX, retinaTipY);
+          context.lineTo(lensX, ey + 10 * scale);
+          context.stroke();
+
+          // Tiny Inverted Retinal Arrow formed on the back Retina wall
+          if (isFocused && !optics.atFocus) {
+            const arrowX = ex - lookDir * (r - 5);
+            context.strokeStyle = '#22d3ee';
+            context.fillStyle = '#22d3ee';
+            context.lineWidth = 2;
+            context.beginPath();
+            context.moveTo(arrowX, ey - 5 * scale);
+            context.lineTo(arrowX, ey + 6 * scale);
+            context.stroke();
+          }
+        } else {
+          // Dysfunctional Red Cross over Eyeball
+          context.strokeStyle = '#f43f5e';
+          context.lineWidth = 2.2;
+          context.beginPath();
+          context.moveTo(ex - 9 * scale, ey - 9 * scale);
+          context.lineTo(ex + 9 * scale, ey + 9 * scale);
+          context.moveTo(ex + 9 * scale, ey - 9 * scale);
+          context.lineTo(ex - 9 * scale, ey + 9 * scale);
+          context.stroke();
+        }
+
+        // Labels
+        context.font = '700 10px Inter, sans-serif';
+        context.fillStyle = isDys ? '#fda4af' : '#e9d5ff';
+        context.textAlign = 'center';
+        context.fillText(
+          isDys
+            ? (optics.isLens ? 'DYSFUNCTIONAL (PAST LENS)' : 'DYSFUNCTIONAL (BEHIND MIRROR)')
+            : `DRAG EYE (${Math.round(optics.eyeX)}, ${Math.round(optics.eyeY)})`,
+          ex,
+          ey + r + 16
+        );
+        context.font = '600 9px JetBrains Mono, monospace';
+        context.fillStyle = '#fda4af';
+        context.fillText('Retina', ex - lookDir * (r + 4), ey - r - 6);
+        context.fillStyle = '#7dd3fc';
+        context.fillText('Eye Lens', lensX + lookDir * 6, ey - r - 6);
+        context.restore();
+      }
+
+      // Helper: Draw Draggable Physical Screen on Main Bench (Mode B)
+      function drawPhysicalScreenOnBench(context, orig, scale, optics) {
+        const screenPos = toCanvas(orig, state.screenX, 0);
+        const screenHalfH = 95 * scale;
+        const isNoOutgoingLightSide = (!optics.isLens && state.screenX > 0) || (optics.isLens && state.screenX < 0);
+        const isAtRealImage = !optics.isVirtual && !optics.atFocus && Math.abs(state.screenX - optics.v) < 12;
+
+        context.save();
+        let strokeCol = '#38bdf8';
+        let fillCol = 'rgba(56, 189, 248, 0.14)';
+        if (isNoOutgoingLightSide) {
+          strokeCol = '#f43f5e';
+          fillCol = 'rgba(244, 63, 94, 0.14)';
+        } else if (isAtRealImage) {
+          strokeCol = '#10b981';
+          fillCol = 'rgba(16, 185, 129, 0.22)';
+        }
+
+        context.fillStyle = fillCol;
+        context.strokeStyle = strokeCol;
+        context.lineWidth = 2.5;
+        context.beginPath();
+        context.roundRect(screenPos.cx - 6, orig.py - screenHalfH, 12, screenHalfH * 2, 3);
+        context.fill();
+        context.stroke();
+
+        context.font = '700 10px Inter, sans-serif';
+        context.fillStyle = isNoOutgoingLightSide ? '#fda4af' : (isAtRealImage ? '#6ee7b7' : '#bae6fd');
+        context.textAlign = 'center';
+        const statusLabel = isNoOutgoingLightSide
+          ? (optics.isLens ? 'PAPER SCREEN (0% Refracted Light Here)' : 'PAPER SCREEN (0% Light Behind Mirror)')
+          : (isAtRealImage ? 'PAPER SCREEN (Real Image Projected!)' : 'PAPER SCREEN (Drag to Focus)');
+        context.fillText(statusLabel, screenPos.cx, orig.py - screenHalfH - 10);
+
+        context.font = '600 10px JetBrains Mono, monospace';
+        context.fillStyle = '#e2e8f0';
+        context.fillText(`DRAG SCREEN (x = ${state.screenX > 0 ? '+' : ''}${Math.round(state.screenX)}px)`, screenPos.cx, orig.py + screenHalfH + 16);
+        context.restore();
+      }
+
+      // =========================================================================
+      // 5. ANATOMICAL EYE & RETINA INNER FORMATION ZOOM CANVAS (MODE A)
+      // =========================================================================
+      function drawRetinaZoomDiagram(optics) {
+        const rect = retinaZoomCanvas.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        if (w === 0 || h === 0) return;
+
+        retinaCtx.clearRect(0, 0, w, h);
+
+        const cy = h * 0.52;
+        const eyeCenterX = w * 0.54;
+        const eyeRx = Math.min(w * 0.26, 95);
+        const eyeRy = Math.min(h * 0.38, 68);
+        const lensX = eyeCenterX - eyeRx * 0.58;
+        const retinaX = eyeCenterX + eyeRx * 0.88;
+
+        if (optics.eyeDysfunctional) {
+          // DYSFUNCTIONAL STATE: Eye dragged past Mirror or Lens -> 0 Incoming Rays!
+          retinaCtx.save();
+          retinaCtx.font = '700 11px Inter, sans-serif';
+          retinaCtx.fillStyle = '#f43f5e';
+          retinaCtx.textAlign = 'left';
+          retinaCtx.fillText(
+            optics.isLens
+              ? '⚠️ DYSFUNCTIONAL: Eye Moved Past Lens (x ≤ 0 • 0% Refracted Rays)'
+              : '⚠️ DYSFUNCTIONAL: Eye Moved Behind Mirror (x ≥ 0 • 0% Reflected Rays)',
+            12,
+            20
+          );
+
+          // Dimmed Optic Nerve
+          retinaCtx.fillStyle = '#1e293b';
+          retinaCtx.strokeStyle = '#475569';
+          retinaCtx.lineWidth = 2;
+          retinaCtx.beginPath();
+          retinaCtx.roundRect(eyeCenterX + eyeRx - 4, cy - 12, w - (eyeCenterX + eyeRx) - 8, 24, 4);
+          retinaCtx.fill();
+          retinaCtx.stroke();
+
+          retinaCtx.fillStyle = '#64748b';
+          retinaCtx.font = '700 9px JetBrains Mono, monospace';
+          retinaCtx.textAlign = 'center';
+          retinaCtx.fillText('NO SIGNAL → BRAIN', (eyeCenterX + eyeRx + w) / 2 - 4, cy + 3);
+
+          // Dark Eyeball Chamber
+          retinaCtx.fillStyle = '#090d16';
+          retinaCtx.strokeStyle = '#f43f5e';
+          retinaCtx.lineWidth = 2;
+          retinaCtx.beginPath();
+          retinaCtx.ellipse(eyeCenterX, cy, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+          retinaCtx.fill();
+          retinaCtx.stroke();
+
+          // Inactive Retina Wall
+          retinaCtx.strokeStyle = '#475569';
+          retinaCtx.lineWidth = 4;
+          retinaCtx.beginPath();
+          retinaCtx.ellipse(eyeCenterX, cy, eyeRx - 3, eyeRy - 3, 0, -Math.PI * 0.42, Math.PI * 0.42);
+          retinaCtx.stroke();
+
+          // Inactive Eye Lens
+          retinaCtx.fillStyle = 'rgba(71, 85, 105, 0.35)';
+          retinaCtx.strokeStyle = '#64748b';
+          retinaCtx.lineWidth = 1.5;
+          retinaCtx.beginPath();
+          retinaCtx.ellipse(lensX, cy, 11, 34, 0, 0, Math.PI * 2);
+          retinaCtx.fill();
+          retinaCtx.stroke();
+
+          // Warning message inside empty eyeball
+          retinaCtx.fillStyle = '#fda4af';
+          retinaCtx.font = '700 11px Inter, sans-serif';
+          retinaCtx.textAlign = 'center';
+          retinaCtx.fillText('0% LIGHT RAYS ENTER PUPIL', eyeCenterX + 8, cy - 6);
+          retinaCtx.fillStyle = '#94a3b8';
+          retinaCtx.font = '500 10px Inter, sans-serif';
+          retinaCtx.fillText('No Retinal Image Can Form Here', eyeCenterX + 8, cy + 10);
+          retinaCtx.restore();
+          return;
+        }
+
+        const eyeBeforeReal = isEyeTooCloseForRealImage(optics);
+
+        // 1. Incoming Rays from Mirror or Lens
+        retinaCtx.save();
+        retinaCtx.font = '600 10px Inter, sans-serif';
+        retinaCtx.fillStyle = '#cbd5e1';
+        retinaCtx.textAlign = 'left';
+        const sourceWord = optics.isLens ? 'Lens' : 'Mirror';
+        retinaCtx.fillText(
+          optics.isVirtual
+            ? `1. Diverging Rays from ${sourceWord}`
+            : (eyeBeforeReal ? '1. Pre-Converging Rays' : '1. Diverging Rays (After Real Crossing)'),
+          12,
+          20
+        );
+
+        const inStartX = 16;
+        const inTopStartY = optics.isVirtual ? cy - 8 : (eyeBeforeReal ? cy - 38 : cy - 6);
+        const inBotStartY = optics.isVirtual ? cy + 8 : (eyeBeforeReal ? cy + 38 : cy + 6);
+        const lensTopY = cy - 26;
+        const lensBotY = cy + 26;
+
+        retinaCtx.strokeStyle = '#c084fc';
+        retinaCtx.lineWidth = 2;
+        drawRayWithArrow(retinaCtx, inStartX, inTopStartY, lensX, lensTopY, '#c084fc');
+        drawRayWithArrow(retinaCtx, inStartX, inBotStartY, lensX, lensBotY, '#c084fc');
+        retinaCtx.restore();
+
+        // 2. Anatomical Eyeball Cross-Section
+        retinaCtx.save();
+        retinaCtx.fillStyle = '#1e293b';
+        retinaCtx.strokeStyle = '#64748b';
+        retinaCtx.lineWidth = 2;
+        retinaCtx.beginPath();
+        retinaCtx.roundRect(eyeCenterX + eyeRx - 4, cy - 12, w - (eyeCenterX + eyeRx) - 8, 24, 4);
+        retinaCtx.fill();
+        retinaCtx.stroke();
+
+        retinaCtx.fillStyle = '#94a3b8';
+        retinaCtx.font = '700 9px JetBrains Mono, monospace';
+        retinaCtx.textAlign = 'center';
+        retinaCtx.fillText('OPTIC NERVE → BRAIN', (eyeCenterX + eyeRx + w) / 2 - 4, cy + 3);
+
+        retinaCtx.fillStyle = '#0f172a';
+        retinaCtx.strokeStyle = '#94a3b8';
+        retinaCtx.lineWidth = 2.5;
+        retinaCtx.beginPath();
+        retinaCtx.ellipse(eyeCenterX, cy, eyeRx, eyeRy, 0, 0, Math.PI * 2);
+        retinaCtx.fill();
+        retinaCtx.stroke();
+
+        retinaCtx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+        retinaCtx.strokeStyle = '#bae6fd';
+        retinaCtx.lineWidth = 2;
+        retinaCtx.beginPath();
+        retinaCtx.arc(lensX - 4, cy, eyeRy * 0.62, Math.PI * 0.58, Math.PI * 1.42);
+        retinaCtx.fill();
+        retinaCtx.stroke();
+
+        // Photosensitive RETINA Wall
+        retinaCtx.strokeStyle = '#f43f5e';
+        retinaCtx.lineWidth = 4.5;
+        retinaCtx.beginPath();
+        retinaCtx.ellipse(eyeCenterX, cy, eyeRx - 3, eyeRy - 3, 0, -Math.PI * 0.42, Math.PI * 0.42);
+        retinaCtx.stroke();
+
+        retinaCtx.fillStyle = '#fda4af';
+        retinaCtx.font = '700 10px Inter, sans-serif';
+        retinaCtx.textAlign = 'center';
+        retinaCtx.fillText('RETINA WALL (Screen of Eye)', eyeCenterX + eyeRx * 0.55, cy - eyeRy - 7);
+
+        // Crystalline Biconvex Lens inside Eye
+        retinaCtx.fillStyle = 'rgba(56, 189, 248, 0.82)';
+        retinaCtx.strokeStyle = '#e0f2fe';
+        retinaCtx.lineWidth = 1.8;
+        retinaCtx.beginPath();
+        retinaCtx.ellipse(lensX, cy, 11, 34, 0, 0, Math.PI * 2);
+        retinaCtx.fill();
+        retinaCtx.stroke();
+
+        // Iris / Pupil Aperture
+        retinaCtx.strokeStyle = '#a855f7';
+        retinaCtx.lineWidth = 3.5;
+        retinaCtx.beginPath();
+        retinaCtx.moveTo(lensX - 9, cy - 46);
+        retinaCtx.lineTo(lensX - 9, cy - 28);
+        retinaCtx.moveTo(lensX - 9, cy + 46);
+        retinaCtx.lineTo(lensX - 9, cy + 28);
+        retinaCtx.stroke();
+
+        retinaCtx.fillStyle = '#7dd3fc';
+        retinaCtx.font = '700 10px Inter, sans-serif';
+        retinaCtx.fillText('Convex Eye Lens', lensX, cy + eyeRy + 14);
+
+        // 3. Refracted Rays Inside Eyeball -> Converging onto the Retina
+        const convergeX = eyeBeforeReal ? (eyeCenterX + eyeRx * 0.35) : retinaX;
+        const invertedTipY = cy + 22;
+        const invertedBaseY = cy - 18;
+
+        retinaCtx.strokeStyle = eyeBeforeReal ? '#fb7185' : '#4ade80';
+        retinaCtx.lineWidth = 2;
+        drawRayWithArrow(retinaCtx, lensX, lensTopY, convergeX, invertedTipY, eyeBeforeReal ? '#fb7185' : '#4ade80');
+        drawRayWithArrow(retinaCtx, lensX, lensBotY, convergeX, invertedTipY, eyeBeforeReal ? '#fb7185' : '#4ade80');
+
+        if (!optics.atFocus && !eyeBeforeReal) {
+          retinaCtx.strokeStyle = '#22d3ee';
+          retinaCtx.fillStyle = '#22d3ee';
+          retinaCtx.lineWidth = 2.8;
+          retinaCtx.beginPath();
+          retinaCtx.moveTo(retinaX - 2, invertedBaseY);
+          retinaCtx.lineTo(retinaX - 2, invertedTipY);
+          retinaCtx.stroke();
+
+          retinaCtx.beginPath();
+          retinaCtx.moveTo(retinaX - 2, invertedTipY);
+          retinaCtx.lineTo(retinaX - 7, invertedTipY - 8);
+          retinaCtx.lineTo(retinaX + 3, invertedTipY - 8);
+          retinaCtx.closePath();
+          retinaCtx.fill();
+
+          retinaCtx.save();
+          retinaCtx.translate(retinaX - 14, cy);
+          retinaCtx.scale(0.85, -0.85);
+          retinaCtx.font = '800 13px Inter, sans-serif';
+          retinaCtx.fillStyle = '#fde047';
+          retinaCtx.textAlign = 'center';
+          retinaCtx.textBaseline = 'middle';
+          retinaCtx.fillText('R', 0, 0);
+          retinaCtx.restore();
+
+          retinaCtx.fillStyle = '#4ade80';
+          retinaCtx.font = '700 10px JetBrains Mono, monospace';
+          retinaCtx.textAlign = 'right';
+          retinaCtx.fillText('Real, Inverted Retinal Image!', retinaX - 8, cy + eyeRy + 14);
+        } else if (eyeBeforeReal) {
+          retinaCtx.fillStyle = '#fda4af';
+          retinaCtx.font = '700 10px Inter, sans-serif';
+          retinaCtx.textAlign = 'center';
+          retinaCtx.fillText('Rays Cross Before Retina (Blurry)', eyeCenterX, cy + eyeRy + 14);
+        }
+
+        retinaCtx.restore();
+      }
+
+      // =========================================================================
+      // 6. RENDER "WHAT THE EYE SEES" & "WHAT THE SCREEN CATCHES" VIEWPORTS
+      // =========================================================================
+      function drawViewports(optics) {
+        if (state.detectorMode === 'eye') {
+          drawRetinaZoomDiagram(optics);
+
+          const ew = eyeViewCanvas.getBoundingClientRect().width;
+          const eh = eyeViewCanvas.getBoundingClientRect().height;
+          if (ew > 0 && eh > 0) {
+            eyeCtx.clearRect(0, 0, ew, eh);
+            const cx = ew / 2;
+            const cy = eh / 2;
+            const apertureRadius = Math.min(ew, eh) * 0.42;
+
+            const grad = eyeCtx.createRadialGradient(cx - 12, cy - 12, 8, cx, cy, apertureRadius);
+            grad.addColorStop(0, '#1e293b');
+            grad.addColorStop(0.85, '#0f172a');
+            grad.addColorStop(1, '#334155');
+
+            eyeCtx.save();
+            eyeCtx.beginPath();
+            eyeCtx.arc(cx, cy, apertureRadius, 0, Math.PI * 2);
+            eyeCtx.fillStyle = grad;
+            eyeCtx.fill();
+            eyeCtx.lineWidth = 3;
+            eyeCtx.strokeStyle = optics.isLens ? '#38bdf8' : '#475569';
+            eyeCtx.stroke();
+            eyeCtx.clip();
+
+            eyeCtx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+            eyeCtx.lineWidth = 1;
+            for (let gx = cx - apertureRadius; gx <= cx + apertureRadius; gx += 16) {
+              eyeCtx.beginPath();
+              eyeCtx.moveTo(gx, cy - apertureRadius);
+              eyeCtx.lineTo(gx, cy + apertureRadius);
+              eyeCtx.stroke();
+            }
+
+            const eyeBeforeRealConvergence = isEyeTooCloseForRealImage(optics);
+
+            if (optics.eyeDysfunctional) {
+              eyeCtx.fillStyle = 'rgba(244, 63, 94, 0.14)';
+              eyeCtx.fillRect(cx - apertureRadius, cy - apertureRadius, apertureRadius * 2, apertureRadius * 2);
+              eyeCtx.fillStyle = '#f43f5e';
+              eyeCtx.font = '800 11px Inter, sans-serif';
+              eyeCtx.textAlign = 'center';
+              eyeCtx.fillText('DYSFUNCTIONAL ZONE', cx, cy - 10);
+              eyeCtx.fillStyle = '#fda4af';
+              eyeCtx.font = '600 10px Inter, sans-serif';
+              eyeCtx.fillText(optics.isLens ? 'Eye Past Lens (x ≤ 0)' : 'Eye Behind Mirror (x ≥ 0)', cx, cy + 6);
+              eyeCtx.fillStyle = '#94a3b8';
+              eyeCtx.font = '500 9px Inter, sans-serif';
+              eyeCtx.fillText('No Image Generated (0% Light)', cx, cy + 22);
+            } else if (optics.atFocus) {
+              eyeCtx.fillStyle = 'rgba(251, 191, 36, 0.25)';
+              eyeCtx.fillRect(cx - apertureRadius, cy - apertureRadius, apertureRadius * 2, apertureRadius * 2);
+              eyeCtx.fillStyle = '#fde68a';
+              eyeCtx.font = '700 11px Inter, sans-serif';
+              eyeCtx.textAlign = 'center';
+              eyeCtx.fillText('Outgoing Rays Parallel (At Focus F)', cx, cy - 4);
+              eyeCtx.font = '500 10px Inter, sans-serif';
+              eyeCtx.fillText('Image at Infinity', cx, cy + 12);
+            } else {
+              const magClamped = Math.max(-3.0, Math.min(3.0, optics.m));
+              drawPerceivedObject(
+                eyeCtx,
+                cx,
+                cy,
+                magClamped,
+                optics.isVirtual ? '#22d3ee' : '#10b981',
+                eyeBeforeRealConvergence
+              );
+            }
+            eyeCtx.restore();
+
+            eyeCtx.font = '600 10px JetBrains Mono, monospace';
+            eyeCtx.fillStyle = optics.eyeDysfunctional ? '#f43f5e' : '#94a3b8';
+            eyeCtx.textAlign = 'left';
+            eyeCtx.fillText(
+              optics.eyeDysfunctional
+                ? 'Brain Perception: NONE (Eye Past Optic)'
+                : `Brain Perception: m = ${optics.atFocus ? '∞' : (optics.m > 0 ? '+' : '') + optics.m.toFixed(2) + '×'}`,
+              12,
+              eh - 10
+            );
+          }
+        } else if (state.detectorMode === 'screen') {
+          // EXCLUSIVE MODE B: WHAT THE PHYSICAL SCREEN CATCHES
+          const sw = screenViewCanvas.getBoundingClientRect().width;
+          const sh = screenViewCanvas.getBoundingClientRect().height;
+          if (sw === 0 || sh === 0) return;
+          screenCtx.clearRect(0, 0, sw, sh);
+
+          const scx = sw / 2;
+          const scy = sh / 2;
+          const cardW = sw * 0.84;
+          const cardH = sh * 0.80;
+
+          // For Mirrors: x > 0 has 0% reflected light (opaque mirror).
+          // For Lenses: x < 0 has 0% refracted light (before the lens).
+          const isNoOutgoingLightSide = (!optics.isLens && state.screenX > 0) || (optics.isLens && state.screenX < 0);
+          const defocusDist = Math.abs(state.screenX - optics.v);
+
+          screenCtx.save();
+          screenCtx.fillStyle = '#090d16';
+          screenCtx.strokeStyle = isNoOutgoingLightSide ? '#f43f5e' : (defocusDist < 12 && !optics.isVirtual ? '#10b981' : '#38bdf8');
+          screenCtx.lineWidth = 2.5;
+          screenCtx.beginPath();
+          screenCtx.roundRect(scx - cardW / 2, scy - cardH / 2, cardW, cardH, 12);
+          screenCtx.fill();
+          screenCtx.stroke();
+
+          if (isNoOutgoingLightSide) {
+            screenCtx.fillStyle = '#f43f5e';
+            screenCtx.font = '800 13px Inter, sans-serif';
+            screenCtx.textAlign = 'center';
+            screenCtx.fillText(
+              optics.isLens
+                ? 'BLANK SCREEN (0% REFRACTED IMAGE RAYS)'
+                : 'BLANK PAPER SCREEN (0% LIGHT BEHIND MIRROR)',
+              scx,
+              scy - 18
+            );
+
+            screenCtx.fillStyle = '#cbd5e1';
+            screenCtx.font = '500 11px Inter, sans-serif';
+            screenCtx.fillText(`Screen is at x = ${state.screenX > 0 ? '+' : ''}${Math.round(state.screenX)} px.`, scx, scy + 4);
+            screenCtx.fillStyle = '#94a3b8';
+            if (optics.isLens) {
+              screenCtx.fillText('Refracted rays travel to the RIGHT (x > 0). Only dashed', scx, scy + 22);
+              screenCtx.fillText('virtual extensions exist at this location on the left!', scx, scy + 38);
+            } else {
+              screenCtx.fillText('Reflected rays travel to the LEFT (x < 0) and never', scx, scy + 22);
+              screenCtx.fillText('physically pass behind the mirror onto this surface.', scx, scy + 38);
+            }
+          } else if (optics.isVirtual) {
+            // Outgoing side (x < 0 for mirror, x > 0 for lens), but rays are diverging!
+            screenCtx.fillStyle = 'rgba(251, 191, 36, 0.14)';
+            screenCtx.beginPath();
+            screenCtx.arc(scx, scy, 48, 0, Math.PI * 2);
+            screenCtx.fill();
+
+            screenCtx.fillStyle = '#fde68a';
+            screenCtx.font = '700 12px Inter, sans-serif';
+            screenCtx.textAlign = 'center';
+            screenCtx.fillText('UNFOCUSED DIFFUSE GLOW (NO IMAGE)', scx, scy - 8);
+            screenCtx.fillStyle = '#94a3b8';
+            screenCtx.font = '500 11px Inter, sans-serif';
+            screenCtx.fillText('Outgoing rays are diverging everywhere on this side.', scx, scy + 12);
+            screenCtx.fillText('Without a lens like the eye, a flat screen cannot focus them!', scx, scy + 28);
+          } else if (optics.atFocus) {
+            screenCtx.fillStyle = '#fbbf24';
+            screenCtx.font = '700 12px Inter, sans-serif';
+            screenCtx.textAlign = 'center';
+            screenCtx.fillText('Parallel Outgoing Rays — Image at Infinity', scx, scy);
+          } else {
+            // Real Image Regime on the valid outgoing side
+            const magClamped = Math.max(-3.0, Math.min(3.0, optics.m));
+            const isScreenBlurry = defocusDist >= 12;
+            drawPerceivedObject(screenCtx, scx, scy, magClamped, '#10b981', isScreenBlurry);
+
+            screenCtx.fillStyle = isScreenBlurry ? '#fcd34d' : '#6ee7b7';
+            screenCtx.font = '600 10px JetBrains Mono, monospace';
+            screenCtx.textAlign = 'left';
+            screenCtx.fillText(
+              isScreenBlurry
+                ? `Out of Focus! Click "Snap to Image (v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)}px)"`
+                : `Sharp Real Inverted Image Caught at v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)}px!`,
+              scx - cardW / 2 + 12,
+              scy + cardH / 2 - 10
+            );
+          }
+          screenCtx.restore();
+        }
+      }
+
+      // =========================================================================
+      // 7. TELEMETRY & UI TEXT UPDATER ACROSS ALL 4 MODES
+      // =========================================================================
+      function updateTelemetryUI(optics) {
+        const cfg = OPTIC_CONFIGS[state.opticMode];
+        headerOpticBadge.textContent = cfg.name;
+        footerEquation.textContent = cfg.equationText;
+
+        // Update Legend labels for Mirror vs Lens
+        if (!optics.isLens) {
+          legendRay1.textContent = 'Parallel Ray (via F)';
+          legendRay2.textContent = 'Pole P Ray (∠i = ∠r)';
+        } else {
+          legendRay1.textContent = state.opticMode === 'convex_lens' ? 'Parallel Ray (via F₂)' : 'Parallel Ray (diverges from F₁)';
+          legendRay2.textContent = 'Optical Center O Ray (Undeviated)';
+        }
+
+        // Slider badges
+        let regionText = 'Inside F';
+        if (Math.abs(state.uAbs - FOCAL_MAG) < 1.2) regionText = 'At |F|';
+        else if (state.uAbs > FOCAL_MAG && state.uAbs < 300) regionText = 'Between F & 2F';
+        else if (state.uAbs >= 300) regionText = 'Beyond 2F';
+
+        objectDistLabel.textContent = `${Math.round(state.uAbs)} px (${regionText})`;
+        eyeDistLabel.textContent = `x = ${state.eyeX > 0 ? '+' : ''}${Math.round(state.eyeX)} px ${optics.eyeDysfunctional ? '(PAST OPTIC!)' : ''}`;
+        eyeYLabel.textContent = `y = ${state.eyeY > 0 ? '+' : ''}${Math.round(state.eyeY)} px`;
+
+        telF.textContent = `${optics.f > 0 ? '+' : ''}${optics.f} px`;
+        telU.textContent = `${Math.round(optics.u)} px`;
+
+        if (optics.atFocus) {
+          telV.textContent = '∞ (Infinity)';
+          telM.textContent = '∞';
+        } else {
+          const vFormatted = `${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px`;
+          telV.textContent = vFormatted;
+          telM.textContent = `${optics.m > 0 ? '+' : ''}${optics.m.toFixed(2)}×`;
+        }
+
+        // Update "None / Pure Ray Diagram" Summary Card
+        if (noneSumOptic) {
+          noneSumOptic.textContent = cfg.name;
+          noneSumUF.textContent = `u = ${Math.round(optics.u)}px, f = ${optics.f > 0 ? '+' : ''}${optics.f}px`;
+          if (optics.atFocus) {
+            noneSumNature.textContent = 'At Infinity (Parallel Rays)';
+            noneSumVM.textContent = 'v = ∞, m = ∞';
+            noneSumDescription.textContent = 'Because the object is placed directly at the principal focus F, outgoing rays emerge parallel to each other and never intersect at a finite distance.';
+          } else {
+            const sizeWord = Math.abs(optics.m) > 1.02 ? 'Magnified' : (Math.abs(optics.m) < 0.98 ? 'Diminished' : 'Same Size');
+            noneSumNature.textContent = optics.isVirtual ? `Virtual, Upright, ${sizeWord}` : `Real, Inverted, ${sizeWord}`;
+            noneSumVM.textContent = `v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)}px, m = ${optics.m > 0 ? '+' : ''}${optics.m.toFixed(2)}×`;
+            noneSumDescription.textContent = optics.isVirtual
+              ? 'Outgoing rays diverge. Tracing them backward along the dashed cyan lines locates the upright virtual image.'
+              : 'Outgoing rays physically converge and intersect at the image location, forming an inverted real image.';
+          }
+        }
+
+        // Top Regime Badge
+        if (optics.isVirtual) {
+          const sizeWord = Math.abs(optics.m) > 1.02 ? 'Magnified' : 'Diminished';
+          const sideLoc = optics.isLens ? 'Same Side as Object (x < 0)' : 'Behind Mirror (x > 0)';
+          regimeBadge.textContent = `VIRTUAL IMAGE (Upright & ${sizeWord})`;
+          regimeBadge.className = 'px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+          sideNoteBadge.textContent = `• ${sideLoc} (v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px)`;
+        } else if (optics.atFocus) {
+          regimeBadge.textContent = 'AT FOCUS F (Outgoing Rays Parallel)';
+          regimeBadge.className = 'px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40';
+          sideNoteBadge.textContent = '• Image at Infinity (∞)';
+        } else {
+          const sizeWord = Math.abs(optics.m) > 1.02 ? 'Enlarged' : (Math.abs(optics.m) < 0.98 ? 'Diminished' : 'Same Size');
+          const sideLoc = optics.isLens ? 'Transmitted Side (x > 0)' : 'In Front of Mirror (x < 0)';
+          regimeBadge.textContent = `REAL IMAGE (Inverted & ${sizeWord})`;
+          regimeBadge.className = 'px-2.5 py-1 rounded-md text-xs font-bold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+          sideNoteBadge.textContent = `• ${sideLoc} (v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px)`;
+        }
+
+        // Eye & Screen Status Captions
+        const eyeBeforeReal = isEyeTooCloseForRealImage(optics);
+        screenDistLabel.textContent = `${state.screenX > 0 ? '+' : ''}${Math.round(state.screenX)} px`;
+        screenPosText.textContent = `x = ${state.screenX > 0 ? '+' : ''}${Math.round(state.screenX)} px`;
+
+        const isNoOutgoingLightSide = (!optics.isLens && state.screenX > 0) || (optics.isLens && state.screenX < 0);
+
+        // Handle Dysfunctional Eye State First (Applies across ALL 4 Modes when Eye crosses past Mirror/Lens)
+        if (optics.eyeDysfunctional) {
+          retinaStatusPill.textContent = 'NO LIGHT / DYSFUNCTIONAL';
+          retinaStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30';
+          retinaFormationCaption.innerHTML = optics.isLens
+            ? '<strong>Dysfunctional Position (Past Lens):</strong> You moved the eye to the <strong>incident side (x ≤ 0)</strong> before light passes through the lens. No refracted rays from the lens can enter the pupil here!'
+            : '<strong>Dysfunctional Position (Behind Mirror):</strong> You moved the eye <strong>behind the opaque mirror (x ≥ 0)</strong>. Physical light never passes through a mirror, so 0% of reflected rays reach the eye!';
+          retinaStatusText.textContent = 'No Outgoing Rays Reach Eye Position';
+          retinaStatusText.className = 'text-rose-400 font-semibold';
+
+          eyeStatusPill.textContent = 'DYSFUNCTIONAL (0% LIGHT)';
+          eyeStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30';
+          eyeViewCaption.innerHTML = optics.isLens
+            ? 'Move the eye back to the <strong>Right Side (x &gt; 0)</strong> so refracted rays exiting the lens can enter your pupil and form an image!'
+            : 'Move the eye back to the <strong>Left Side (x &lt; 0, in front of mirror)</strong> so reflected rays can enter your pupil and form an image!';
+        } else if (optics.isVirtual) {
+          retinaStatusPill.textContent = 'REAL INVERTED ON RETINA';
+          retinaStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          retinaFormationCaption.innerHTML = `<strong>Step 1 (Inside Eye):</strong> Diverging rays from the ${optics.isLens ? 'lens' : 'mirror'} enter your pupil at <span class="mono">(${Math.round(optics.eyeX)}, ${Math.round(optics.eyeY)})</span>. Your eye’s <strong>Convex Lens</strong> converges them onto the <strong>Retina Wall</strong> as a sharp, real, inverted retinal image!`;
+
+          eyeStatusPill.textContent = 'CLEARLY VISIBLE';
+          eyeStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          eyeViewCaption.innerHTML = `<strong>Step 2 (Brain Perception):</strong> Your brain receives the retinal image via the optic nerve, flips it upright, and traces the rays back to <strong class="text-cyan-300">v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px</strong>!`;
+          retinaStatusText.textContent = 'Sharp Real Inverted Image on Retina';
+          retinaStatusText.className = 'text-emerald-400 font-semibold';
+        } else if (optics.atFocus) {
+          retinaStatusPill.textContent = 'PARALLEL RAYS';
+          eyeStatusPill.textContent = 'PARALLEL RAYS';
+          retinaStatusText.textContent = 'Relaxed Eye Lens Focus';
+        } else {
+          // Real image regime (Eye is on valid side)
+          if (eyeBeforeReal) {
+            retinaStatusPill.textContent = 'UNFOCUSED ON RETINA';
+            retinaStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            eyeStatusPill.textContent = 'BLURRY (EYE TOO CLOSE)';
+            eyeStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            eyeViewCaption.innerHTML = `The eye is placed closer than the real convergence point (<strong class="text-emerald-300">v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px</strong>). Move the eye further ${optics.isLens ? 'right' : 'left'} so rays cross and diverge into the pupil!`;
+            retinaStatusText.textContent = 'Rays Converging Before Retina (Blurry)';
+            retinaStatusText.className = 'text-rose-400 font-semibold';
+          } else {
+            retinaStatusPill.textContent = 'FOCUSED ON RETINA';
+            retinaStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            eyeStatusPill.textContent = 'VISIBLE (INVERTED)';
+            eyeStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            eyeViewCaption.innerHTML = `Because the eye is placed beyond <strong class="text-emerald-300">v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px</strong>, the real rays cross and diverge again into the eye lens!`;
+            retinaStatusText.textContent = 'Sharp Focus on Retina Wall';
+            retinaStatusText.className = 'text-emerald-400 font-semibold';
+          }
+        }
+
+        // Update Screen Status Captions
+        if (optics.isVirtual) {
+          screenStatusPill.textContent = isNoOutgoingLightSide ? 'BLANK (0% LIGHT)' : 'DIFFUSE BLUR';
+          screenStatusPill.className = 'text-[10px] font-bold px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30';
+          screenViewCaption.innerHTML = isNoOutgoingLightSide
+            ? `No outgoing ${optics.isLens ? 'refracted' : 'reflected'} rays exist at <strong class="text-rose-300">x = ${state.screenX > 0 ? '+' : ''}${Math.round(state.screenX)} px</strong>. A screen placed at the virtual image coordinates catches nothing!`
+            : `Even on the outgoing side, the rays are diverging. Because a paper screen has no convex lens like the human eye, it cannot focus diverging rays!`;
+          screenRaysText.textContent = isNoOutgoingLightSide ? '0 Outgoing Rays at Virtual Coords' : 'Diverging Rays (No Lens to Focus)';
+          screenRaysText.className = 'text-rose-400 font-semibold';
+        } else if (optics.atFocus) {
+          screenStatusPill.textContent = 'NO CONVERGENCE';
+          screenRaysText.textContent = 'Outgoing Rays Parallel';
+        } else {
+          const isSharpOnScreen = !isNoOutgoingLightSide && Math.abs(state.screenX - optics.v) < 12;
+          screenStatusPill.textContent = isSharpOnScreen ? 'REAL IMAGE CAUGHT!' : 'OUT OF FOCUS';
+          screenStatusPill.className = isSharpOnScreen
+            ? 'text-[10px] font-bold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            : 'text-[10px] font-bold px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          screenViewCaption.innerHTML = `Outgoing rays physically converge at <strong class="text-emerald-300">v = ${optics.v > 0 ? '+' : ''}${Math.round(optics.v)} px</strong>, projecting a real inverted image directly onto the paper screen.`;
+          screenRaysText.textContent = isSharpOnScreen ? 'Real Rays Physically Converge Here' : 'Screen Displaced from Convergence Point v';
+          screenRaysText.className = isSharpOnScreen ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold';
+        }
+      }
+
+      // =========================================================================
+      // 8. 4-MODE OPTICAL ELEMENT SWITCHER & 3-MODE DETECTOR SWITCHER
+      // =========================================================================
+      function setOpticMode(mode) {
+        stopAnimation();
+        state.opticMode = mode;
+        const cfg = OPTIC_CONFIGS[mode];
+        state.uAbs = cfg.defaultU;
+        state.eyeX = cfg.defaultEyeX;
+        state.eyeY = cfg.defaultEyeY;
+        state.autoSnapScreen = true;
+        objectSlider.value = state.uAbs;
+        eyeSliderX.value = state.eyeX;
+        eyeSliderY.value = state.eyeY;
+
+        // Highlight active 4-mode button
+        document.querySelectorAll('.optic-mode-btn').forEach(btn => {
+          if (btn.getAttribute('data-optic') === mode) {
+            btn.className = 'optic-mode-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20 transition';
+          } else {
+            btn.className = 'optic-mode-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition';
+          }
+        });
+
+        // Update Preset Button descriptions for Converging vs Diverging elements
+        const isDiverging = (mode === 'convex_mirror' || mode === 'concave_lens');
+        if (isDiverging) {
+          presetBtn1.textContent = 'Near (|u| = 90 • Virtual Diminished)';
+          presetBtn2.textContent = 'At |F| (|u| = 150 • Virtual 0.5×)';
+          presetBtn3.textContent = 'Mid (|u| = 225 • Virtual Diminished)';
+          presetBtn4.textContent = 'Far (|u| = 340 • Virtual Diminished)';
+        } else {
+          presetBtn1.textContent = 'Inside F (|u| < f • Virtual Magnified)';
+          presetBtn2.textContent = 'At Focus (|u| = f • Parallel)';
+          presetBtn3.textContent = 'Between F & 2F (Real Enlarged)';
+          presetBtn4.textContent = 'Beyond 2F (Real Diminished)';
+        }
+
+        renderAll();
+      }
+
+      document.querySelectorAll('.optic-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setOpticMode(btn.getAttribute('data-optic'));
+        });
+      });
+
+      const inactiveTabClass = 'flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition';
+
+      function setDetectorMode(mode) {
+        state.detectorMode = mode;
+        btnModeEye.className = inactiveTabClass;
+        btnModeScreen.className = inactiveTabClass;
+        btnModeNone.className = inactiveTabClass;
+
+        eyeDetectorPanel.classList.add('hidden');
+        screenDetectorPanel.classList.add('hidden');
+        noneDetectorPanel.classList.add('hidden');
+
+        eyeSliderControlGroup.classList.add('hidden');
+        screenSliderControlGroup.classList.add('hidden');
+        noneSliderControlGroup.classList.add('hidden');
+
+        if (mode === 'eye') {
+          btnModeEye.className = 'flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 transition';
+          activeDetectorBadge.textContent = 'Active: Human Eye + Retina';
+          activeDetectorBadge.className = 'text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30';
+
+          eyeDetectorPanel.classList.remove('hidden');
+          eyeSliderControlGroup.classList.remove('hidden');
+          eyeConeToggleWrap.classList.remove('hidden');
+          dragDetectorHintWrap.classList.remove('hidden');
+          legendDetectorItem.classList.remove('hidden');
+          dragDetectorDot.className = 'w-2.5 h-2.5 rounded-full bg-purple-400 inline-block';
+          dragDetectorLabel.textContent = 'Drag Eye (2D: X & Y)';
+          legendDetectorItem.innerHTML = '<span class="w-3 h-2 bg-purple-400/30 border border-purple-400 inline-block"></span>Eye Lens &amp; Retina Bundle';
+        } else if (mode === 'screen') {
+          btnModeScreen.className = 'flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/25 transition';
+          activeDetectorBadge.textContent = 'Active: Physical Paper Screen';
+          activeDetectorBadge.className = 'text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30';
+
+          screenDetectorPanel.classList.remove('hidden');
+          screenSliderControlGroup.classList.remove('hidden');
+          eyeConeToggleWrap.classList.add('hidden');
+          dragDetectorHintWrap.classList.remove('hidden');
+          legendDetectorItem.classList.remove('hidden');
+          dragDetectorDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 inline-block';
+          dragDetectorLabel.textContent = 'Drag Screen';
+          legendDetectorItem.innerHTML = '<span class="w-3 h-2 bg-sky-400/30 border border-sky-400 inline-block"></span>Draggable Paper Screen';
+        } else {
+          // 'none' mode: Pure Ray Diagram without Eye or Screen
+          btnModeNone.className = 'flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-xs font-bold bg-gradient-to-r from-slate-700 to-slate-600 text-white shadow-lg transition';
+          activeDetectorBadge.textContent = 'Active: None (Rays Only)';
+          activeDetectorBadge.className = 'text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700';
+
+          noneDetectorPanel.classList.remove('hidden');
+          noneSliderControlGroup.classList.remove('hidden');
+          eyeConeToggleWrap.classList.add('hidden');
+          dragDetectorHintWrap.classList.add('hidden');
+          legendDetectorItem.classList.add('hidden');
+        }
+        resizeCanvases();
+      }
+
+      btnModeEye.addEventListener('click', () => setDetectorMode('eye'));
+      btnModeScreen.addEventListener('click', () => setDetectorMode('screen'));
+      btnModeNone.addEventListener('click', () => setDetectorMode('none'));
+      btnQuickEnableEye.addEventListener('click', () => setDetectorMode('eye'));
+      btnQuickEnableScreen.addEventListener('click', () => setDetectorMode('screen'));
+      btnSwitchToEyeQuick.addEventListener('click', () => setDetectorMode('eye'));
+
+      function snapScreenToImage() {
+        state.autoSnapScreen = true;
+        const optics = computeOptics();
+        if (Number.isFinite(optics.v)) {
+          state.screenX = Math.max(-360, Math.min(360, Math.round(optics.v)));
+          screenSlider.value = state.screenX;
+        }
+        renderAll();
+      }
+
+      btnSnapScreen.addEventListener('click', snapScreenToImage);
+      btnSnapScreenPanel.addEventListener('click', snapScreenToImage);
+
+      function renderAll() {
+        const optics = computeOptics();
+        drawMainDiagram(optics);
+        drawViewports(optics);
+        updateTelemetryUI(optics);
+      }
+
+      // =========================================================================
+      // 9. INTERACTIVE CONTROLS: SLIDERS, 2D DRAGGING, PRESETS, ANIMATION
+      // =========================================================================
+      objectSlider.addEventListener('input', (e) => {
+        stopAnimation();
+        state.uAbs = parseFloat(e.target.value);
+        renderAll();
+      });
+
+      eyeSliderX.addEventListener('input', (e) => {
+        state.eyeX = parseFloat(e.target.value);
+        renderAll();
+      });
+
+      eyeSliderY.addEventListener('input', (e) => {
+        state.eyeY = parseFloat(e.target.value);
+        renderAll();
+      });
+
+      screenSlider.addEventListener('input', (e) => {
+        state.autoSnapScreen = false;
+        state.screenX = parseFloat(e.target.value);
+        renderAll();
+      });
+
+      chkEyeCone.addEventListener('change', (e) => {
+        state.showEyeCone = e.target.checked;
+        renderAll();
+      });
+
+      // Preset Buttons
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          stopAnimation();
+          state.autoSnapScreen = true;
+          const targetU = parseFloat(btn.getAttribute('data-u'));
+          state.uAbs = targetU;
+          objectSlider.value = targetU;
+          const isLens = OPTIC_CONFIGS[state.opticMode].type === 'lens';
+          const dir = isLens ? 1 : -1;
+          if (targetU === 225) {
+            state.eyeX = dir * 350;
+          } else {
+            state.eyeX = dir * 310;
+          }
+          eyeSliderX.value = state.eyeX;
+          renderAll();
+        });
+      });
+
+      // Smooth Sweep Animation
+      let animFrameId = null;
+      function stepAnimation() {
+        if (!state.animating) return;
+        state.uAbs += state.animDir * 1.1;
+        if (state.uAbs >= 355) {
+          state.uAbs = 355;
+          state.animDir = -1;
+        } else if (state.uAbs <= 55) {
+          state.uAbs = 55;
+          state.animDir = 1;
+        }
+        objectSlider.value = Math.round(state.uAbs);
+        renderAll();
+        animFrameId = requestAnimationFrame(stepAnimation);
+      }
+
+      function stopAnimation() {
+        if (state.animating) {
+          state.animating = false;
+          animIcon.textContent = '▶';
+          animText.textContent = 'Sweep Object';
+          if (animFrameId) cancelAnimationFrame(animFrameId);
+        }
+      }
+
+      btnAnimate.addEventListener('click', () => {
+        if (state.animating) {
+          stopAnimation();
+        } else {
+          state.animating = true;
+          animIcon.textContent = '⏸';
+          animText.textContent = 'Pause Sweep';
+          stepAnimation();
+        }
+      });
+
+      // Direct Canvas Pointer Dragging for Object, Eye, and Screen
+      function getCanvasPointerPos(evt) {
+        const rect = opticsCanvas.getBoundingClientRect();
+        const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+        const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top
+        };
+      }
+
+      opticsCanvas.addEventListener('pointerdown', (e) => {
+        const pt = getCanvasPointerPos(e);
+        const orig = getOrigin(opticsCanvas);
+        const optics = computeOptics();
+        const objPos = toCanvas(orig, -state.uAbs, OBJ_HEIGHT / 2);
+        const distObj = Math.hypot(pt.x - objPos.cx, pt.y - objPos.cy);
+
+        if (state.detectorMode === 'eye') {
+          const eyePos = toCanvas(orig, optics.eyeX, optics.eyeY);
+          const distEye = Math.hypot(pt.x - eyePos.cx, pt.y - eyePos.cy);
+          if (distEye < 42) {
+            state.dragging = 'eye';
+            opticsCanvas.setPointerCapture(e.pointerId);
+            return;
+          }
+        } else if (state.detectorMode === 'screen') {
+          const screenPos = toCanvas(orig, state.screenX, 0);
+          if (Math.abs(pt.x - screenPos.cx) < 24 && Math.abs(pt.y - orig.py) < 95) {
+            state.dragging = 'screen';
+            state.autoSnapScreen = false;
+            opticsCanvas.setPointerCapture(e.pointerId);
+            return;
+          }
+        }
+
+        if (distObj < 40) {
+          stopAnimation();
+          state.dragging = 'object';
+          opticsCanvas.setPointerCapture(e.pointerId);
+        }
+      });
+
+      opticsCanvas.addEventListener('pointermove', (e) => {
+        if (!state.dragging) return;
+        const pt = getCanvasPointerPos(e);
+        const orig = getOrigin(opticsCanvas);
+        const optX = toOpticalX(orig, pt.x);
+        const optY = toOpticalY(orig, pt.y);
+
+        if (state.dragging === 'object') {
+          state.uAbs = Math.max(45, Math.min(360, -optX));
+          objectSlider.value = Math.round(state.uAbs);
+          renderAll();
+        } else if (state.dragging === 'eye') {
+          // Free 2D dragging along both X (-440 to +440, crossing mirror/lens) and Y (-135 to +135)
+          state.eyeX = Math.max(-440, Math.min(440, optX));
+          state.eyeY = Math.max(-135, Math.min(135, optY));
+          eyeSliderX.value = Math.round(state.eyeX);
+          eyeSliderY.value = Math.round(state.eyeY);
+          renderAll();
+        } else if (state.dragging === 'screen') {
+          state.screenX = Math.max(-360, Math.min(360, optX));
+          screenSlider.value = Math.round(state.screenX);
+          renderAll();
+        }
+      });
+
+      opticsCanvas.addEventListener('pointerup', () => {
+        state.dragging = null;
+      });
+
+      btnReset.addEventListener('click', () => {
+        stopAnimation();
+        state.autoSnapScreen = true;
+        state.showEyeCone = true;
+        chkEyeCone.checked = true;
+        setDetectorMode('eye');
+        setOpticMode('concave_mirror');
+      });
+
+      // Initialize immediately on load (No Predict-Before-See lock!)
+      window.addEventListener('load', () => {
+        resizeCanvases();
+      });
+    })();
+  </script>
+</body>
+</html>
